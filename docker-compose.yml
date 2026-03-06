@@ -26,8 +26,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-viralscript}:${POSTGRES_PASSWORD:-viralscript_dev}@postgres:5432/${POSTGRES_DB:-viralscript}
       REDIS_URL: redis://redis:6379
@@ -50,8 +50,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     environment:
       NODE_ENV: production
       BACKEND_URL: ${BACKEND_URL:-http://backend:3001}
