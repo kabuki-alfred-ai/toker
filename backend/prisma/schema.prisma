@@ -1,0 +1,109 @@
+// backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CreditTransactionReason {
+  TRANSCRIPTION_USED
+  TRANSCRIPTION_REFUND
+  SOURCE_FINDER_USED
+  SOURCE_FINDER_REFUND
+  PURCHASE
+  WEEKLY_RESET
+}
+
+enum SourceSearchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TranscriptionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String
+  firstName          String?
+  lastName           String?
+  role               Role                @default(USER)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  transcriptions     Transcription[]
+  sourceSearches     SourceSearch[]
+  creditWallet       CreditWallet?
+  creditTransactions CreditTransaction[]
+
+  @@map("users")
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(5)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_wallets")
+}
+
+model CreditTransaction {
+  id          String                    @id @default(cuid())
+  userId      String
+  amount      Int                       // positive = credit, negative = debit
+  reason      CreditTransactionReason
+  description String?
+  createdAt   DateTime                  @default(now())
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_transactions")
+}
+
+model Transcription {
+  id        String              @id @default(cuid())
+  userId    String
+  videoUrl  String
+  title     String?             // Video title from yt-dlp metadata
+  duration  Int?                // Duration in seconds
+  text      String?
+  segments  Json?               // Array of { start: number, end: number, text: string }
+  keywords  Json?               // Array of strings extracted by GPT-4o-mini
+  status    TranscriptionStatus @default(PENDING)
+  errorMsg  String?
+  audioUuid String? // Cache UUID : skip yt-dlp si déjà téléchargé (FR11)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transcriptions")
+}
+
+model SourceSearch {
+  id        String             @id @default(cuid())
+  userId    String
+  videoUrl  String
+  status    SourceSearchStatus @default(PENDING)
+  errorMsg  String?
+  sources   Json?              // Array of { url, title, thumbnailUrl, timestamp, confidence, type }
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("source_searches")
+}

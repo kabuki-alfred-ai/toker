@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "ViralScript",
+  "version": "1.0.0",
+  "description": "Transcription instantanée de vidéos TikTok, Instagram, YouTube",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:3001/*",
+    "https://www.tiktok.com/*",
+    "https://www.instagram.com/*",
+    "https://www.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.tiktok.com/*",
+        "https://www.instagram.com/*",
+        "https://www.youtube.com/shorts/*"
+      ],
+      "js": [
+        "src/content/video-detector.js"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_width": 380,
+    "default_height": 520
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
