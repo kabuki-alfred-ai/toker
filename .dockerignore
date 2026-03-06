@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/.next/
+**/out/
+**/build/
+
+# Dev files
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+
+# Git
+.git/
+.gitignore
+
+# Local tools
+extension/
+discord/
+_bmad/
+_bmad-output/
+docs/
