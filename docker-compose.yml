@@ -5,22 +5,17 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-viralscript}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-viralscript_dev}
       POSTGRES_DB: ${POSTGRES_DB:-viralscript}
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U viralscript"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viralscript}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    # NFR3: Redis persistence obligatoire pour 0 perte de jobs BullMQ
     command: redis-server --appendonly yes --save 60 1
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -28,6 +23,43 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-viralscript}:${POSTGRES_PASSWORD:-viralscript_dev}@postgres:5432/${POSTGRES_DB:-viralscript}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+      BACKEND_PORT: 3001
+      GOOGLE_VISION_API_KEY: ${GOOGLE_VISION_API_KEY}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && node dist/main"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      BACKEND_URL: ${BACKEND_URL:-http://backend:3001}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
