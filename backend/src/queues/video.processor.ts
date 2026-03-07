@@ -131,6 +131,7 @@ export class VideoProcessor extends WorkerHost {
     const ytDlp = process.env.YT_DLP_PATH ?? 'yt-dlp'
     const ffmpegPath = process.env.FFMPEG_PATH ?? '/usr/bin/ffmpeg'
     await execa(ytDlp, [
+      '--force-ipv6',
       '--extract-audio',
       '--audio-format', 'mp3',
       '--audio-quality', '5',
