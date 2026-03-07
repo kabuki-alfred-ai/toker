@@ -31,14 +31,7 @@ services:
     restart: unless-stopped
     environment:
       API_URL: "http://cobalt:9000/"
-      YOUTUBE_SESSION_SERVER: "http://yt-session-generator:8080"
-    depends_on:
-      - yt-session-generator
 
-  yt-session-generator:
-    image: ghcr.io/imputnet/yt-session-generator:webserver
-    init: true
-    restart: unless-stopped
 
   backend:
     build:
