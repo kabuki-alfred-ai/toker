@@ -8,6 +8,7 @@ import { join } from 'path'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const execa = require('execa') as (file: string, args: string[]) => Promise<void>
 import OpenAI from 'openai'
+import { readFile } from 'fs/promises'
 import { createReadStream, existsSync, writeFileSync } from 'fs'
 import { PrismaService } from '../common/prisma/prisma.service'
 import { RedisService } from '../common/redis/redis.service'
@@ -25,6 +26,7 @@ export interface ProcessVideoJobData {
 export class VideoProcessor extends WorkerHost {
   private readonly logger = new Logger(VideoProcessor.name)
   private readonly openai: OpenAI
+  private readonly groq: OpenAI | null
 
   constructor(
     private readonly prisma: PrismaService,
@@ -34,6 +36,8 @@ export class VideoProcessor extends WorkerHost {
   ) {
     super()
     this.openai = new OpenAI({ apiKey: this.config.get<string>('OPENAI_API_KEY') })
+    const groqKey = this.config.get<string>('GROQ_API_KEY')
+    this.groq = groqKey ? new OpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: groqKey }) : null
   }
 
   async process(job: Job<ProcessVideoJobData>): Promise<void> {
@@ -162,6 +166,54 @@ export class VideoProcessor extends WorkerHost {
   }
 
   private async transcribeAudio(audioPath: string): Promise<{ text: string; segments: { start: number; end: number; text: string }[] }> {
+    const deepgramKey = this.config.get<string>('DEEPGRAM_API_KEY')
+    
+    // 1. Try Deepgram if available
+    if (deepgramKey) {
+      this.logger.log('Transcribing via Deepgram...')
+      const audioBuffer = await readFile(audioPath)
+      const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&utterances=true', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${deepgramKey}`,
+          'Content-Type': 'audio/mp3',
+        },
+        body: audioBuffer
+      })
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        throw new Error(`Deepgram API error: ${errorText}`)
+      }
+      const data = await response.json() as any
+      const text = data?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? ''
+      const utterances = data?.results?.utterances ?? []
+      const segments = utterances.map((u: any) => ({
+        start: u.start,
+        end: u.end,
+        text: u.transcript,
+      }))
+      return { text, segments }
+    }
+
+    // 2. Try Groq if available
+    if (this.groq) {
+      this.logger.log('Transcribing via Groq (whisper-large-v3-turbo)...')
+      const response = await this.groq.audio.transcriptions.create({
+        file: createReadStream(audioPath),
+        model: 'whisper-large-v3-turbo',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['segment'],
+      })
+      const segments = (response.segments ?? []).map((s) => ({
+        start: s.start,
+        end: s.end,
+        text: s.text.trim(),
+      }))
+      return { text: response.text, segments }
+    }
+
+    // 3. Fallback to OpenAI
+    this.logger.log('Transcribing via OpenAI (whisper-1)...')
     const response = await this.openai.audio.transcriptions.create({
       file: createReadStream(audioPath),
       model: 'whisper-1',
@@ -178,8 +230,12 @@ export class VideoProcessor extends WorkerHost {
 
   private async extractKeywords(text: string): Promise<string[]> {
     try {
-      const res = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+      const client = this.groq ?? this.openai
+      const model = this.groq ? 'llama-3.1-8b-instant' : 'gpt-4o-mini'
+      
+      this.logger.log(`Extracting keywords via ${this.groq ? 'Groq' : 'OpenAI'}...`)
+      const res = await client.chat.completions.create({
+        model,
         messages: [
           {
             role: 'system',
