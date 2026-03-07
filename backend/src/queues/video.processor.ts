@@ -88,7 +88,15 @@ export class VideoProcessor extends WorkerHost {
   }
 
   private getCookiesArgs(): string[] {
-    // 1. Check if the user passed the cookies directly as a string in an ENV var (easier on Coolify)
+    // 1. BEST WAY for Coolify: Base64 string to avoid newline/tab format corruption
+    if (process.env.YT_COOKIES_BASE64) {
+      const tmpCookiesPath = join(tmpdir(), 'youtube_cookies.txt')
+      const decodedCookies = Buffer.from(process.env.YT_COOKIES_BASE64, 'base64').toString('utf-8')
+      writeFileSync(tmpCookiesPath, decodedCookies, { encoding: 'utf-8' })
+      return ['--cookies', tmpCookiesPath]
+    }
+
+    // 2. Check if the user passed the cookies directly as a string in an ENV var
     if (process.env.YT_COOKIES_CONTENT) {
       const tmpCookiesPath = join(tmpdir(), 'youtube_cookies.txt')
       // Clean up the string in case Coolify flattened newlines into literal '\n' or spaces
@@ -97,7 +105,7 @@ export class VideoProcessor extends WorkerHost {
       return ['--cookies', tmpCookiesPath]
     }
 
-    // 2. Otherwise fallback to a file path
+    // 3. Otherwise fallback to a file path
     const cookiesPath = process.env.YT_COOKIES_PATH ?? '/app/cookies.txt'
     if (existsSync(cookiesPath)) {
       return ['--cookies', cookiesPath]
