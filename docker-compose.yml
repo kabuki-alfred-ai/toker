@@ -30,7 +30,8 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-viralscript}:${POSTGRES_PASSWORD:-viralscript_dev}@postgres:5432/${POSTGRES_DB:-viralscript}
-      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       BACKEND_PORT: 3001
