@@ -87,7 +87,9 @@ export class VideoProcessor extends WorkerHost {
     // 1. Check if the user passed the cookies directly as a string in an ENV var (easier on Coolify)
     if (process.env.YT_COOKIES_CONTENT) {
       const tmpCookiesPath = join(tmpdir(), 'youtube_cookies.txt')
-      writeFileSync(tmpCookiesPath, process.env.YT_COOKIES_CONTENT, { encoding: 'utf-8' })
+      // Clean up the string in case Coolify flattened newlines into literal '\n' or spaces
+      const cleanedCookies = process.env.YT_COOKIES_CONTENT.replace(/\\n/g, '\n')
+      writeFileSync(tmpCookiesPath, cleanedCookies, { encoding: 'utf-8' })
       return ['--cookies', tmpCookiesPath]
     }
 
@@ -124,6 +126,7 @@ export class VideoProcessor extends WorkerHost {
       '--no-playlist',
       '--ffmpeg-location', ffmpegPath,
       '--js-runtimes', 'node',
+      '--extractor-args', 'youtube:player_client=android,ios',
       ...this.getCookiesArgs(),
       videoUrl,
     ])
@@ -146,6 +149,7 @@ export class VideoProcessor extends WorkerHost {
         '--no-download',
         '--no-playlist',
         '--js-runtimes', 'node',
+        '--extractor-args', 'youtube:player_client=android,ios',
         ...this.getCookiesArgs(),
         videoUrl,
       ])
