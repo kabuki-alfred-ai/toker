@@ -5,7 +5,8 @@ import { Job } from 'bullmq'
 import { createHash } from 'crypto'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { writeFile } from 'fs/promises'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const execa = require('execa') as (file: string, args: string[]) => Promise<void>
 import OpenAI from 'openai'
 import { createReadStream, existsSync } from 'fs'
 import { PrismaService } from '../common/prisma/prisma.service'
@@ -24,7 +25,6 @@ export interface ProcessVideoJobData {
 export class VideoProcessor extends WorkerHost {
   private readonly logger = new Logger(VideoProcessor.name)
   private readonly openai: OpenAI
-  private readonly cobaltUrl: string
 
   constructor(
     private readonly prisma: PrismaService,
@@ -34,7 +34,6 @@ export class VideoProcessor extends WorkerHost {
   ) {
     super()
     this.openai = new OpenAI({ apiKey: this.config.get<string>('OPENAI_API_KEY') })
-    this.cobaltUrl = this.config.get<string>('COBALT_API_URL', 'http://cobalt:9000')
   }
 
   async process(job: Job<ProcessVideoJobData>): Promise<void> {
@@ -42,9 +41,10 @@ export class VideoProcessor extends WorkerHost {
     this.logger.log(`Processing job ${job.id} for transcription ${transcriptionId}`)
 
     try {
+      const meta = await this.fetchVideoMeta(videoUrl)
       await this.prisma.transcription.update({
         where: { id: transcriptionId },
-        data: { status: 'PROCESSING' },
+        data: { status: 'PROCESSING', title: meta.title, duration: meta.duration },
       })
 
       const audioPath = await this.getAudio(videoUrl, transcriptionId)
@@ -83,6 +83,14 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
+  private getCookiesArgs(): string[] {
+    const cookiesPath = process.env.YT_COOKIES_PATH ?? '/app/cookies.txt'
+    if (existsSync(cookiesPath)) {
+      return ['--cookies', cookiesPath]
+    }
+    return []
+  }
+
   private async getAudio(videoUrl: string, transcriptionId: string): Promise<string> {
     const uuid = createHash('sha256').update(videoUrl).digest('hex').slice(0, 16)
 
@@ -97,55 +105,19 @@ export class VideoProcessor extends WorkerHost {
     }
 
     const outputPath = join(tmpdir(), `vs_${uuid}.mp3`)
-
-    // Use Cobalt API to download audio
-    this.logger.log(`Downloading audio via Cobalt for ${videoUrl}`)
-    const cobaltResponse = await fetch(`${this.cobaltUrl}/`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: videoUrl,
-        downloadMode: 'audio',
-        audioFormat: 'mp3',
-        audioBitrate: '128',
-      }),
-    })
-
-    if (!cobaltResponse.ok) {
-      const errText = await cobaltResponse.text().catch(() => 'no body')
-      throw new Error(`Cobalt API error: ${cobaltResponse.status} ${cobaltResponse.statusText} - ${errText}`)
-    }
-
-    const cobaltData = await cobaltResponse.json() as {
-      status: string
-      url?: string
-      error?: { code: string }
-    }
-
-    if (cobaltData.status === 'error') {
-      throw new Error(`Cobalt error: ${JSON.stringify(cobaltData.error)}`)
-    }
-
-    if (cobaltData.status !== 'tunnel' && cobaltData.status !== 'redirect') {
-      throw new Error(`Unexpected Cobalt status: ${cobaltData.status}`)
-    }
-
-    if (!cobaltData.url) {
-      throw new Error('Cobalt returned no download URL')
-    }
-
-    // Download the audio file from Cobalt tunnel/redirect URL
-    const audioResponse = await fetch(cobaltData.url)
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to download audio: ${audioResponse.status}`)
-    }
-
-    const audioBuffer = Buffer.from(await audioResponse.arrayBuffer())
-    await writeFile(outputPath, audioBuffer)
-    this.logger.log(`Audio saved to ${outputPath} (${audioBuffer.length} bytes)`)
+    const ytDlp = process.env.YT_DLP_PATH ?? 'yt-dlp'
+    const ffmpegPath = process.env.FFMPEG_PATH ?? '/usr/bin/ffmpeg'
+    await execa(ytDlp, [
+      '--extract-audio',
+      '--audio-format', 'mp3',
+      '--audio-quality', '5',
+      '--output', outputPath,
+      '--no-playlist',
+      '--ffmpeg-location', ffmpegPath,
+      '--js-runtimes', 'node',
+      ...this.getCookiesArgs(),
+      videoUrl,
+    ])
 
     await this.redis.setAudioPath(uuid, outputPath)
     await this.prisma.transcription.update({
@@ -154,6 +126,26 @@ export class VideoProcessor extends WorkerHost {
     })
 
     return outputPath
+  }
+
+  private async fetchVideoMeta(videoUrl: string): Promise<{ title: string | null; duration: number | null }> {
+    try {
+      const ytDlp = process.env.YT_DLP_PATH ?? 'yt-dlp'
+      const execaFull = require('execa') as (file: string, args: string[]) => Promise<{ stdout: string }>
+      const result = await execaFull(ytDlp, [
+        '--print', '%(title)s|||%(duration)s',
+        '--no-download',
+        '--no-playlist',
+        '--js-runtimes', 'node',
+        ...this.getCookiesArgs(),
+        videoUrl,
+      ])
+      const [title, durationStr] = result.stdout.trim().split('|||')
+      const duration = durationStr ? parseInt(durationStr, 10) : null
+      return { title: title || null, duration: isNaN(duration as number) ? null : duration }
+    } catch {
+      return { title: null, duration: null }
+    }
   }
 
   private async transcribeAudio(audioPath: string): Promise<{ text: string; segments: { start: number; end: number; text: string }[] }> {

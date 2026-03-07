@@ -24,15 +24,6 @@ services:
       timeout: 5s
       retries: 5
 
-  cobalt:
-    image: ghcr.io/imputnet/cobalt:11
-    init: true
-    read_only: true
-    restart: unless-stopped
-    environment:
-      API_URL: "http://cobalt:9000/"
-
-
   backend:
     build:
       context: .
@@ -44,8 +35,6 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       BACKEND_PORT: 3001
-      COBALT_API_URL: http://cobalt:9000
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
       GOOGLE_VISION_API_KEY: ${GOOGLE_VISION_API_KEY}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
@@ -57,8 +46,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      cobalt:
-        condition: service_started
     command: sh -c "npx prisma migrate deploy && node dist/src/main"
     restart: unless-stopped
 
