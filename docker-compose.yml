@@ -24,6 +24,22 @@ services:
       timeout: 5s
       retries: 5
 
+  cobalt:
+    image: ghcr.io/imputnet/cobalt:11
+    init: true
+    read_only: true
+    restart: unless-stopped
+    environment:
+      API_URL: "http://cobalt:9000/"
+      YOUTUBE_SESSION_SERVER: "http://yt-session-generator:8080"
+    depends_on:
+      - yt-session-generator
+
+  yt-session-generator:
+    image: ghcr.io/imputnet/yt-session-generator:webserver
+    init: true
+    restart: unless-stopped
+
   backend:
     build:
       context: .
@@ -35,6 +51,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       BACKEND_PORT: 3001
+      COBALT_API_URL: http://cobalt:9000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       GOOGLE_VISION_API_KEY: ${GOOGLE_VISION_API_KEY}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
@@ -46,8 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ytdlp_cache:/app/yt-dlp-cache
+      cobalt:
+        condition: service_started
     command: sh -c "npx prisma migrate deploy && node dist/src/main"
     restart: unless-stopped
 
@@ -67,4 +85,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  ytdlp_cache:

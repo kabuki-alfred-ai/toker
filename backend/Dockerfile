@@ -1,9 +1,5 @@
 FROM node:20-alpine
 
-# yt-dlp + ffmpeg + runtime deps
-RUN apk add --no-cache python3 py3-pip ffmpeg && \
-    pip3 install --break-system-packages yt-dlp
-
 WORKDIR /app
 COPY backend/package.json ./
 RUN npm install
