@@ -98,7 +98,7 @@ export class VideoProcessor extends WorkerHost {
 
     const outputPath = join(tmpdir(), `vs_${uuid}.mp3`)
     const ytDlp = process.env.YT_DLP_PATH ?? 'yt-dlp'
-    const ffmpegPath = process.env.FFMPEG_PATH ?? 'ffmpeg'
+    const ffmpegPath = process.env.FFMPEG_PATH ?? '/usr/bin/ffmpeg'
     await execa(ytDlp, [
       '--extract-audio',
       '--audio-format', 'mp3',
@@ -106,7 +106,7 @@ export class VideoProcessor extends WorkerHost {
       '--output', outputPath,
       '--no-playlist',
       '--ffmpeg-location', ffmpegPath,
-      '--js-runtimes', 'nodejs',
+      '--js-runtimes', 'node',
       videoUrl,
     ])
 
@@ -127,7 +127,7 @@ export class VideoProcessor extends WorkerHost {
         '--print', '%(title)s|||%(duration)s',
         '--no-download',
         '--no-playlist',
-        '--js-runtimes', 'nodejs',
+        '--js-runtimes', 'node',
         videoUrl,
       ])
       const [title, durationStr] = result.stdout.trim().split('|||')
