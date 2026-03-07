@@ -83,6 +83,14 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
+  private getCookiesArgs(): string[] {
+    const cookiesPath = process.env.YT_COOKIES_PATH ?? '/app/cookies.txt'
+    if (existsSync(cookiesPath)) {
+      return ['--cookies', cookiesPath]
+    }
+    return []
+  }
+
   private async getAudio(videoUrl: string, transcriptionId: string): Promise<string> {
     const uuid = createHash('sha256').update(videoUrl).digest('hex').slice(0, 16)
 
@@ -107,6 +115,7 @@ export class VideoProcessor extends WorkerHost {
       '--no-playlist',
       '--ffmpeg-location', ffmpegPath,
       '--js-runtimes', 'node',
+      ...this.getCookiesArgs(),
       videoUrl,
     ])
 
@@ -128,6 +137,7 @@ export class VideoProcessor extends WorkerHost {
         '--no-download',
         '--no-playlist',
         '--js-runtimes', 'node',
+        ...this.getCookiesArgs(),
         videoUrl,
       ])
       const [title, durationStr] = result.stdout.trim().split('|||')
