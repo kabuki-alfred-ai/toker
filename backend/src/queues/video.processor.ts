@@ -91,6 +91,16 @@ export class VideoProcessor extends WorkerHost {
     return []
   }
 
+  private getYtDlpBaseArgs(): string[] {
+    const cacheDir = process.env.YT_DLP_CACHE_DIR ?? '/app/yt-dlp-cache'
+    return [
+      '--no-playlist',
+      '--js-runtimes', 'node',
+      '--cache-dir', cacheDir,
+      ...this.getCookiesArgs(),
+    ]
+  }
+
   private async getAudio(videoUrl: string, transcriptionId: string): Promise<string> {
     const uuid = createHash('sha256').update(videoUrl).digest('hex').slice(0, 16)
 
@@ -112,10 +122,8 @@ export class VideoProcessor extends WorkerHost {
       '--audio-format', 'mp3',
       '--audio-quality', '5',
       '--output', outputPath,
-      '--no-playlist',
       '--ffmpeg-location', ffmpegPath,
-      '--js-runtimes', 'node',
-      ...this.getCookiesArgs(),
+      ...this.getYtDlpBaseArgs(),
       videoUrl,
     ])
 
@@ -135,9 +143,7 @@ export class VideoProcessor extends WorkerHost {
       const result = await execaFull(ytDlp, [
         '--print', '%(title)s|||%(duration)s',
         '--no-download',
-        '--no-playlist',
-        '--js-runtimes', 'node',
-        ...this.getCookiesArgs(),
+        ...this.getYtDlpBaseArgs(),
         videoUrl,
       ])
       const [title, durationStr] = result.stdout.trim().split('|||')

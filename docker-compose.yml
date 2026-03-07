@@ -46,6 +46,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ytdlp_cache:/app/yt-dlp-cache
     command: sh -c "npx prisma migrate deploy && node dist/src/main"
     restart: unless-stopped
 
@@ -65,3 +67,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ytdlp_cache:
