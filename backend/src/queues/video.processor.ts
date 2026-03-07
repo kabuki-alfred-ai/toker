@@ -115,7 +115,8 @@ export class VideoProcessor extends WorkerHost {
     })
 
     if (!cobaltResponse.ok) {
-      throw new Error(`Cobalt API error: ${cobaltResponse.status} ${cobaltResponse.statusText}`)
+      const errText = await cobaltResponse.text().catch(() => 'no body')
+      throw new Error(`Cobalt API error: ${cobaltResponse.status} ${cobaltResponse.statusText} - ${errText}`)
     }
 
     const cobaltData = await cobaltResponse.json() as {
