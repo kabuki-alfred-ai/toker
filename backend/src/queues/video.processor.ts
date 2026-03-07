@@ -8,7 +8,7 @@ import { join } from 'path'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const execa = require('execa') as (file: string, args: string[]) => Promise<void>
 import OpenAI from 'openai'
-import { createReadStream, existsSync } from 'fs'
+import { createReadStream, existsSync, writeFileSync } from 'fs'
 import { PrismaService } from '../common/prisma/prisma.service'
 import { RedisService } from '../common/redis/redis.service'
 import { EmailService } from '../common/email/email.service'
@@ -84,10 +84,19 @@ export class VideoProcessor extends WorkerHost {
   }
 
   private getCookiesArgs(): string[] {
+    // 1. Check if the user passed the cookies directly as a string in an ENV var (easier on Coolify)
+    if (process.env.YT_COOKIES_CONTENT) {
+      const tmpCookiesPath = join(tmpdir(), 'youtube_cookies.txt')
+      writeFileSync(tmpCookiesPath, process.env.YT_COOKIES_CONTENT, { encoding: 'utf-8' })
+      return ['--cookies', tmpCookiesPath]
+    }
+
+    // 2. Otherwise fallback to a file path
     const cookiesPath = process.env.YT_COOKIES_PATH ?? '/app/cookies.txt'
     if (existsSync(cookiesPath)) {
       return ['--cookies', cookiesPath]
     }
+
     return []
   }
 
