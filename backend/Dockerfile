@@ -1,8 +1,8 @@
 FROM node:20-alpine
 
-# yt-dlp + ffmpeg + runtime deps
+# yt-dlp (LATEST MASTER BRANCH) + ffmpeg + runtime deps
 RUN apk add --no-cache python3 py3-pip ffmpeg && \
-    pip3 install --break-system-packages yt-dlp
+    pip3 install --break-system-packages -U https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
 
 WORKDIR /app
 COPY backend/package.json ./
