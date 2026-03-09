@@ -1,7 +1,10 @@
+import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import * as readline from 'readline'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const prisma = new PrismaClient({ adapter })
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
 const ask = (q: string): Promise<string> => new Promise((r) => rl.question(q, r))
@@ -28,7 +31,7 @@ async function main() {
   }
 
   await prisma.user.update({ where: { id: user.id }, data: { role: 'ADMIN' } })
-  console.log(`\n✅ ${user.email} is now ADMIN. They need to re-login to get a new JWT.`)
+  console.log(`\n${user.email} is now ADMIN. They need to re-login to get a new JWT.`)
 }
 
 main()
