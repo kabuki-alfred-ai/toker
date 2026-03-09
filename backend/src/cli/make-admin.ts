@@ -20,7 +20,8 @@ async function main() {
     process.exit(0)
   }
 
-  const confirm = await ask(`\nPromote "${user.email}" (${user.name ?? 'no name'}) to ADMIN? (y/N): `)
+  const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'no name'
+  const confirm = await ask(`\nPromote "${user.email}" (${displayName}) to ADMIN? (y/N): `)
   if (confirm.trim().toLowerCase() !== 'y') {
     console.log('Cancelled.')
     process.exit(0)
