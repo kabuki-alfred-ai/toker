@@ -114,6 +114,13 @@ export class VideoProcessor extends WorkerHost {
     return []
   }
 
+  private getProxyArgs(): string[] {
+    if (process.env.PROXY_URL) {
+      return ['--proxy', process.env.PROXY_URL]
+    }
+    return []
+  }
+
   private async getAudio(videoUrl: string, transcriptionId: string): Promise<string> {
     const uuid = createHash('sha256').update(videoUrl).digest('hex').slice(0, 16)
 
@@ -138,9 +145,11 @@ export class VideoProcessor extends WorkerHost {
       '--output', outputPath,
       '--no-playlist',
       '--ffmpeg-location', ffmpegPath,
-      '--js-runtimes', 'node',
-      '--extractor-args', 'youtube:player_client=android,ios',
+      '--js-runtimes', 'deno,node',
+      '--remote-components', 'ejs:npm',
+      '--extractor-args', 'youtube:player_client=web,android_sdkless',
       ...this.getCookiesArgs(),
+      ...this.getProxyArgs(),
       videoUrl,
     ])
 
@@ -161,9 +170,11 @@ export class VideoProcessor extends WorkerHost {
         '--print', '%(title)s|||%(duration)s',
         '--no-download',
         '--no-playlist',
-        '--js-runtimes', 'node',
-        '--extractor-args', 'youtube:player_client=android,ios',
+        '--js-runtimes', 'deno,node',
+        '--remote-components', 'ejs:npm',
+        '--extractor-args', 'youtube:player_client=web,android_sdkless',
         ...this.getCookiesArgs(),
+        ...this.getProxyArgs(),
         videoUrl,
       ])
       const [title, durationStr] = result.stdout.trim().split('|||')
