@@ -114,11 +114,10 @@ export class VideoProcessor extends WorkerHost {
     return []
   }
 
-  private getProxyArgs(): string[] {
-    if (process.env.PROXY_URL) {
-      return ['--proxy', process.env.PROXY_URL]
-    }
-    return []
+  private getProxyArgs(videoUrl: string): string[] {
+    if (!process.env.PROXY_URL) return []
+    const needsProxy = /youtube\.com|youtu\.be/i.test(videoUrl)
+    return needsProxy ? ['--proxy', process.env.PROXY_URL] : []
   }
 
   private async getAudio(videoUrl: string, transcriptionId: string): Promise<string> {
@@ -149,7 +148,7 @@ export class VideoProcessor extends WorkerHost {
       '--js-runtimes', 'node',
       '--extractor-args', 'youtube:player_client=web,mweb',
       ...this.getCookiesArgs(),
-      ...this.getProxyArgs(),
+      ...this.getProxyArgs(videoUrl),
       videoUrl,
     ])
 
@@ -174,7 +173,7 @@ export class VideoProcessor extends WorkerHost {
         '--js-runtimes', 'node',
         '--extractor-args', 'youtube:player_client=web,mweb',
         ...this.getCookiesArgs(),
-        ...this.getProxyArgs(),
+        ...this.getProxyArgs(videoUrl),
         videoUrl,
       ])
       const [title, durationStr] = result.stdout.trim().split('|||')
