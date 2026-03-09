@@ -5,11 +5,10 @@ RUN apk add --no-cache curl && \
     curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 ENV DENO_DIR=/tmp/deno
 
-# yt-dlp (LATEST MASTER BRANCH) + PO Token plugin (with Node.js deps) + ffmpeg
+# yt-dlp (LATEST MASTER BRANCH) + ffmpeg
 RUN apk add --no-cache python3 py3-pip ffmpeg && \
     pip3 install --break-system-packages -U \
-      https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz \
-      "bgutil-ytdlp-pot-provider[node]"
+      https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
 
 WORKDIR /app
 COPY backend/package.json ./
