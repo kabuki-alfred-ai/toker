@@ -138,14 +138,15 @@ export class VideoProcessor extends WorkerHost {
     const ytDlp = process.env.YT_DLP_PATH ?? 'yt-dlp'
     const ffmpegPath = process.env.FFMPEG_PATH ?? '/usr/bin/ffmpeg'
     await execa(ytDlp, [
-      '--force-ipv6',
+      ...(process.env.FORCE_IPV6 === 'true' ? ['--force-ipv6'] : []),
       '--extract-audio',
       '--audio-format', 'mp3',
       '--audio-quality', '5',
       '--output', outputPath,
       '--no-playlist',
       '--ffmpeg-location', ffmpegPath,
-      '--js-runtimes', 'deno,node',
+      '--js-runtimes', 'deno',
+      '--js-runtimes', 'node',
       '--remote-components', 'ejs:npm',
       '--extractor-args', 'youtube:player_client=web,android_sdkless',
       ...this.getCookiesArgs(),
@@ -170,7 +171,8 @@ export class VideoProcessor extends WorkerHost {
         '--print', '%(title)s|||%(duration)s',
         '--no-download',
         '--no-playlist',
-        '--js-runtimes', 'deno,node',
+        '--js-runtimes', 'deno',
+        '--js-runtimes', 'node',
         '--remote-components', 'ejs:npm',
         '--extractor-args', 'youtube:player_client=web,android_sdkless',
         ...this.getCookiesArgs(),
