@@ -52,12 +52,22 @@ export class VideoProcessor extends WorkerHost {
       })
 
       const audioPath = await this.getAudio(videoUrl, transcriptionId)
+
+      // Verify the audio file exists and has content
+      const audioStats = await readFile(audioPath)
+      this.logger.log(`Audio file size: ${audioStats.length} bytes for ${transcriptionId}`)
+      if (audioStats.length < 1000) {
+        throw new Error(`Audio file too small (${audioStats.length} bytes) — download may have failed silently`)
+      }
+
       const { text, segments } = await this.transcribeAudio(audioPath)
-      const keywords = await this.extractKeywords(text)
+      this.logger.log(`Transcription result: ${text.length} chars, ${segments.length} segments for ${transcriptionId}`)
+
+      const keywords = text.length > 0 ? await this.extractKeywords(text) : []
 
       await this.prisma.transcription.update({
         where: { id: transcriptionId },
-        data: { status: 'COMPLETED', text, segments, keywords },
+        data: { status: 'COMPLETED', text: text || null, segments, keywords },
       })
 
       this.logger.log(`Transcription ${transcriptionId} completed`)
@@ -143,6 +153,7 @@ export class VideoProcessor extends WorkerHost {
       '--audio-quality', '5',
       '--output', outputPath,
       '--no-playlist',
+      '--no-write-thumbnail',
       '--ffmpeg-location', ffmpegPath,
       '--socket-timeout', '60',
       '--js-runtimes', 'deno',
@@ -153,6 +164,10 @@ export class VideoProcessor extends WorkerHost {
       ...this.getProxyArgs(videoUrl),
       videoUrl,
     ])
+
+    if (!existsSync(outputPath)) {
+      throw new Error(`Audio file not found at ${outputPath} after yt-dlp download`)
+    }
 
     await this.redis.setAudioPath(uuid, outputPath)
     await this.prisma.transcription.update({
