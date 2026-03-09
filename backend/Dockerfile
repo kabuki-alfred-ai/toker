@@ -5,14 +5,11 @@ RUN apk add --no-cache curl && \
     curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 ENV DENO_DIR=/tmp/deno
 
-# yt-dlp (LATEST MASTER BRANCH) + PO Token plugin + ffmpeg
+# yt-dlp (LATEST MASTER BRANCH) + PO Token plugin (with Node.js deps) + ffmpeg
 RUN apk add --no-cache python3 py3-pip ffmpeg && \
     pip3 install --break-system-packages -U \
       https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz \
-      bgutil-ytdlp-pot-provider
-
-# bgutil needs its npm dependency to generate PO tokens without cookies
-RUN npm install -g bgutil-ytdlp-pot-provider
+      "bgutil-ytdlp-pot-provider[node]"
 
 WORKDIR /app
 COPY backend/package.json ./
