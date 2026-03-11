@@ -50,4 +50,18 @@ export class EmailService {
       text: `Bienvenue ! Vous avez reçu ${credits} crédits gratuits pour commencer à transcrire vos vidéos.`,
     })
   }
+
+  async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
+    if (!this.resend) {
+      this.logger.log(`[DEV] Password reset email → ${to} — URL: ${resetUrl}`)
+      return
+    }
+    await this.resend.emails.send({
+      from: 'ViralScript <noreply@viralscript.app>',
+      to,
+      subject: 'Réinitialisation de votre mot de passe',
+      text: `Vous avez demandé à réinitialiser votre mot de passe ViralScript.\n\nCliquez sur ce lien (valable 1 heure) :\n${resetUrl}\n\nSi vous n'avez pas fait cette demande, ignorez cet email.`,
+      html: `<p>Vous avez demandé à réinitialiser votre mot de passe ViralScript.</p><p><a href="${resetUrl}">Réinitialiser mon mot de passe</a> (lien valable 1 heure)</p><p>Si vous n'avez pas fait cette demande, ignorez cet email.</p>`,
+    })
+  }
 }

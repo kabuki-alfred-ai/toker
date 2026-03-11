@@ -62,8 +62,9 @@
   --accent: #F05800;
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
-  --border: rgba(150, 100, 220, 0.10);
-  --input: rgba(150, 100, 220, 0.06);
+  --border: rgba(150, 100, 220, 0.12);
+  --input: rgba(150, 100, 220, 0.20);
+  --input-background: #F2E8FF;
   --ring: #F05800;
   --radius: 0.75rem;
   --sidebar: #F6EEFF;
@@ -81,6 +82,7 @@
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
+  --input-background: oklch(0.18 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: #EF5F06;

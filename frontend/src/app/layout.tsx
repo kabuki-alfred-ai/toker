@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Albert_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -17,11 +17,14 @@ const albertSans = Albert_Sans({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#F05800",
+};
+
 export const metadata: Metadata = {
   title: "Toker — Transcription vidéo",
   description: "Transcrivez vos vidéos TikTok, Instagram et YouTube en texte en quelques secondes.",
   manifest: "/manifest.json",
-  themeColor: "#F05800",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

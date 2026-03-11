@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,6 +23,8 @@ type LoginFormData = z.infer<typeof loginSchema>
 export function LoginForm() {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const resetSuccess = searchParams.get('reset') === 'success'
 
   const {
     register,
@@ -84,10 +86,19 @@ export function LoginForm() {
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
+              <div className="flex justify-end">
+                <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-primary hover:underline">
+                  Mot de passe oublié ?
+                </Link>
+              </div>
             </div>
 
             {serverError && (
               <p className="text-sm text-destructive">{serverError}</p>
+            )}
+
+            {resetSuccess && !serverError && (
+              <p className="text-sm text-green-600">Mot de passe réinitialisé avec succès. Connectez-vous.</p>
             )}
 
             <Button
