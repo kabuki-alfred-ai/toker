@@ -25,7 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen bg-background flex-row">
       <div className="hidden md:block">
-        <Sidebar balance={user.credits.balance} email={user.email} firstName={user.firstName} lastName={user.lastName} />
+        <Sidebar balance={user.credits.balance} email={user.email} firstName={user.firstName} lastName={user.lastName} isAdmin={user.role === 'ADMIN'} />
       </div>
       
       <main className="flex-1 p-4 md:p-6 pb-[calc(80px+env(safe-area-inset-bottom))] text-foreground overflow-x-hidden">

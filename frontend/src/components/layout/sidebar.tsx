@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search, ShieldCheck, ArrowLeftRight } from 'lucide-react'
 import { CreditsBadge } from '@/components/features/credits/credits-badge'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
@@ -19,6 +19,7 @@ interface SidebarProps {
   email: string
   firstName?: string | null
   lastName?: string | null
+  isAdmin?: boolean
 }
 
 function getInitials(firstName?: string | null, lastName?: string | null, email?: string): string {
@@ -33,7 +34,7 @@ function getDisplayName(firstName?: string | null, lastName?: string | null, ema
   return email ?? ''
 }
 
-export function Sidebar({ balance, email, firstName, lastName }: SidebarProps) {
+export function Sidebar({ balance, email, firstName, lastName, isAdmin }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -96,6 +97,18 @@ export function Sidebar({ balance, email, firstName, lastName }: SidebarProps) {
 
       {/* Footer */}
       <div className="px-4 py-3 border-t border-sidebar-border space-y-3">
+        {/* Admin switcher */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors no-underline"
+          >
+            <ShieldCheck size={14} />
+            <span className="flex-1">Panneau Admin</span>
+            <ArrowLeftRight size={12} className="opacity-60" />
+          </Link>
+        )}
+
         <CreditsBadge balance={balance} />
 
         {/* Avatar dropdown */}
