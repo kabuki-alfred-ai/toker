@@ -53,7 +53,10 @@ export class AuthService {
   async forgotPassword(email: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { email } })
     // Always return success to avoid email enumeration
-    if (!user) return
+    if (!user) {
+      console.log(`[ForgotPassword] No user found for email: ${email}`)
+      return
+    }
 
     // Invalidate existing tokens
     await this.prisma.passwordResetToken.updateMany({
@@ -72,7 +75,9 @@ export class AuthService {
     const appUrl = process.env.APP_URL || 'http://localhost:3000'
     const resetUrl = `${appUrl}/reset-password?token=${token}`
 
-    await this.emailService.sendPasswordResetEmail(user.email, resetUrl).catch(() => {})
+    await this.emailService.sendPasswordResetEmail(user.email, resetUrl).catch((err) => {
+      console.error('[ForgotPassword] Email send failed:', err)
+    })
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

@@ -7,7 +7,7 @@ export class EmailService {
   private resend: Resend | null
 
   constructor() {
-    this.resend = process.env.RESEND_API_KEY
+    this.resend = process.env.RESEND_API_KEY && process.env.NODE_ENV === 'production'
       ? new Resend(process.env.RESEND_API_KEY)
       : null
   }

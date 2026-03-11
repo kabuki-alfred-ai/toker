@@ -16,7 +16,7 @@ import { SourceFinderModule } from './source-finder/source-finder.module'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../.env'] }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../.env', '.env'] }),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],
