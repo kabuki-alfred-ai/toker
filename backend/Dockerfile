@@ -10,6 +10,8 @@ RUN apk add --no-cache python3 py3-pip ffmpeg && \
     pip3 install --break-system-packages -U \
       https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
 
+ENV NODE_ENV=production
+
 WORKDIR /app
 COPY backend/package.json ./
 RUN npm install
