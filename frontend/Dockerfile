@@ -1,9 +1,11 @@
 FROM node:20-alpine AS builder
+# Override any NODE_ENV passed as build-arg so devDependencies are available
+ENV NODE_ENV=production
 WORKDIR /app
 COPY frontend/package.json ./
 RUN npm install --include=dev
 COPY frontend/ ./
-RUN NODE_ENV=development npm run build
+RUN npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
