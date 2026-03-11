@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { FileText, Calendar, Clock, AlertCircle, Loader2, ExternalLink } from 'lucide-react'

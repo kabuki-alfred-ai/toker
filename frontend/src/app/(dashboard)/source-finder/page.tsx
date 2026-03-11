@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { SourceFinderClient } from '@/components/features/source-finder/source-finder-client'
