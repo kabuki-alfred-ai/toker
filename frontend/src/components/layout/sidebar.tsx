@@ -11,7 +11,7 @@ import { Logo } from '@/components/ui/logo'
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/transcriptions', label: 'Transcriptions', icon: FileText },
-  { href: '/source-finder', label: 'Source Finder', icon: Search },
+  { href: '/source-finder', label: 'Source Finder', icon: Search, beta: true },
 ]
 
 interface SidebarProps {
@@ -69,7 +69,7 @@ export function Sidebar({ balance, email, firstName, lastName }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, icon: Icon, beta }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
@@ -83,7 +83,12 @@ export function Sidebar({ balance, email, firstName, lastName }: SidebarProps) {
               )}
             >
               <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={cn(isActive ? "text-primary" : "text-muted-foreground/60")} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {beta && (
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                  Beta
+                </span>
+              )}
             </Link>
           )
         })}

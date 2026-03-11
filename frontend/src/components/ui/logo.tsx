@@ -42,7 +42,7 @@ export const Logo: React.FC<LogoProps> = ({
   if (variant === 'icon') return iconPart;
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-1", className)}>
       {variant === 'full' && iconPart}
       {(variant === 'full' || variant === 'text') && (
         <span className={cn("text-2xl font-medium tracking-wide leading-none pt-0.5 font-albert", textColor)}>

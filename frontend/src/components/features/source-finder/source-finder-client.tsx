@@ -189,7 +189,12 @@ export function SourceFinderClient({ credits, history: initialHistory }: { credi
   return (
     <div className="max-w-4xl space-y-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-foreground font-albert">Source Finder</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground font-albert">Source Finder</h1>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+            Bêta
+          </span>
+        </div>
         <p className="text-muted-foreground">Retrouvez les vidéos originales.</p>
       </div>
 
