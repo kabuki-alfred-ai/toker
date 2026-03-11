@@ -3,6 +3,11 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { MultiUrlSubmitWrapper } from '@/components/features/transcriptions/multi-url-submit-wrapper'
 import { PlatformIcon, detectPlatform } from '@/components/ui/platform-icon'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Zap, History } from 'lucide-react'
 
 type TxStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
@@ -22,9 +27,6 @@ interface TranscriptionsData {
   page: number
 }
 
-const STATUS_COLORS: Record<TxStatus, string> = {
-  PENDING: '#8B8B8B', PROCESSING: '#5E6AD2', COMPLETED: '#22C55E', FAILED: '#EF4444',
-}
 const STATUS_LABELS: Record<TxStatus, string> = {
   PENDING: 'En attente', PROCESSING: 'En cours', COMPLETED: 'Terminé', FAILED: 'Échoué',
 }
@@ -68,117 +70,119 @@ export default async function TranscriptionsPage({
   const { balance, transcriptions } = await fetchPageData(page)
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', marginBottom: 20 }}>
-        Transcriptions
-      </h1>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 2, marginBottom: 28, borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 0 }}>
-        <TabLink href="/transcriptions?tab=form" active={tab === 'form'}>
-          Nouvelle transcription
-        </TabLink>
-        <TabLink href="/transcriptions?tab=history" active={tab === 'history'}>
-          Historique
-          {transcriptions.total > 0 && (
-            <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: tab === 'history' ? '#5E6AD2' : '#555', background: tab === 'history' ? 'rgba(94,106,210,0.15)' : 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 10 }}>
-              {transcriptions.total}
-            </span>
-          )}
-        </TabLink>
+    <div className="max-w-4xl space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-foreground font-albert">
+          Transcriptions
+        </h1>
+        <p className="text-muted-foreground">
+          Transformez vos vidéos en texte en quelques secondes.
+        </p>
       </div>
 
-      {/* Tab content */}
-      {tab === 'form' ? (
-        <MultiUrlSubmitWrapper credits={balance} />
-      ) : (
-        <HistoryTab transcriptions={transcriptions} page={page} />
-      )}
+      <Tabs value={tab} className="w-full">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="form" asChild>
+            <Link href="/transcriptions?tab=form" className="no-underline flex items-center gap-2">
+              <Zap size={14} /> Nouvelle
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="history" asChild>
+            <Link href="/transcriptions?tab=history" className="no-underline flex items-center gap-2">
+              <History size={14} /> Historique
+              {transcriptions.total > 0 && (
+                <span className="text-[10px] bg-muted-foreground/20 px-1 rounded-sm">
+                  {transcriptions.total}
+                </span>
+              )}
+            </Link>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="pt-2">
+        {tab === 'form' ? (
+          <MultiUrlSubmitWrapper credits={balance} />
+        ) : (
+          <HistoryTab transcriptions={transcriptions} page={page} />
+        )}
+      </div>
     </div>
-  )
-}
-
-// ─── Tab components ────────────────────────────────────────────────────────────
-
-function TabLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '8px 16px',
-        fontSize: 14,
-        fontWeight: active ? 500 : 400,
-        color: active ? '#F2F2F2' : '#8B8B8B',
-        textDecoration: 'none',
-        borderBottom: active ? '2px solid #5E6AD2' : '2px solid transparent',
-        marginBottom: -1,
-        transition: 'color 0.15s',
-      }}
-    >
-      {children}
-    </Link>
   )
 }
 
 function HistoryTab({ transcriptions, page }: { transcriptions: TranscriptionsData; page: number }) {
   if (transcriptions.items.length === 0) {
     return (
-      <div style={{ padding: '48px 0', textAlign: 'center' }}>
-        <p style={{ color: '#8B8B8B', fontSize: 14, margin: '0 0 16px' }}>Aucune transcription pour le moment.</p>
-        <Link href="/transcriptions?tab=form" style={{ display: 'inline-block', padding: '8px 18px', borderRadius: 6, background: '#5E6AD2', color: '#fff', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>
-          Commencer
-        </Link>
-      </div>
+      <Card>
+        <CardContent className="py-20 text-center">
+          <p className="text-muted-foreground font-medium mb-6">Aucune transcription pour le moment.</p>
+          <Button asChild>
+            <Link href="/transcriptions?tab=form">Commencer</Link>
+          </Button>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {transcriptions.items.map((tx) => {
-          const platform = detectPlatform(tx.videoUrl)
-          return (
-            <Link
-              key={tx.id}
-              href={`/transcriptions/${tx.id}`}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 8, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none' }}
-            >
-              <span style={{ fontSize: 11, fontWeight: 600, color: STATUS_COLORS[tx.status], padding: '2px 8px', borderRadius: 4, background: `${STATUS_COLORS[tx.status]}15`, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {STATUS_LABELS[tx.status]}
-              </span>
-              <PlatformIcon platform={platform} />
-              <span style={{ flex: 1, fontSize: 13, color: '#C4C4C4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {tx.title ?? shortUrl(tx.videoUrl)}
-              </span>
-              {tx.duration != null && (
-                <span style={{ fontSize: 11, color: '#666', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {formatDuration(tx.duration)}
-                </span>
-              )}
-              <span style={{ fontSize: 11, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {new Date(tx.createdAt).toLocaleDateString('fr-FR')}
-              </span>
-            </Link>
-          )
-        })}
-      </div>
+    <div className="space-y-4">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="divide-y">
+            {transcriptions.items.map((tx) => {
+              const platform = detectPlatform(tx.videoUrl)
+              const statusColors = {
+                PENDING: 'bg-muted text-muted-foreground',
+                PROCESSING: 'bg-sky-50 text-sky-600',
+                COMPLETED: 'bg-emerald-50 text-emerald-600',
+                FAILED: 'bg-destructive/10 text-destructive'
+              }
+              return (
+                <Link
+                  key={tx.id}
+                  href={`/transcriptions/${tx.id}`}
+                  className="group flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors no-underline"
+                >
+                  <div className={cn(
+                    "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
+                    statusColors[tx.status]
+                  )}>
+                    {STATUS_LABELS[tx.status]}
+                  </div>
+                  <div className="opacity-70 group-hover:opacity-100 transition-opacity shrink-0">
+                    <PlatformIcon platform={platform} />
+                  </div>
+                  <span className="flex-1 text-sm font-medium text-foreground truncate">
+                    {tx.title ?? shortUrl(tx.videoUrl)}
+                  </span>
+                  <div className="flex items-center gap-6 shrink-0 text-xs font-medium text-muted-foreground">
+                    {tx.duration != null && (
+                      <span className="font-mono">
+                        {formatDuration(tx.duration)}
+                      </span>
+                    )}
+                    <span className="uppercase">
+                      {new Date(tx.createdAt).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {transcriptions.total > 20 && (
-        <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
-          {page > 1 && (
-            <Link href={`/transcriptions?tab=history&page=${page - 1}`} style={{ padding: '6px 14px', borderRadius: 6, background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: '#8B8B8B', fontSize: 13, textDecoration: 'none' }}>
-              ← Précédent
-            </Link>
-          )}
-          {page * 20 < transcriptions.total && (
-            <Link href={`/transcriptions?tab=history&page=${page + 1}`} style={{ padding: '6px 14px', borderRadius: 6, background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: '#8B8B8B', fontSize: 13, textDecoration: 'none' }}>
-              Suivant →
-            </Link>
-          )}
+        <div className="mt-8 flex gap-2 justify-center">
+          <Button asChild variant="outline" size="sm" disabled={page <= 1}>
+            <Link href={`/transcriptions?tab=history&page=${page - 1}`} className="no-underline">← Précédent</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" disabled={page * 20 >= transcriptions.total}>
+            <Link href={`/transcriptions?tab=history&page=${page + 1}`} className="no-underline">Suivant →</Link>
+          </Button>
         </div>
       )}
-    </>
+    </div>
   )
 }

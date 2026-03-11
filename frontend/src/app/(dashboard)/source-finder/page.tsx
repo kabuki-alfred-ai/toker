@@ -42,17 +42,6 @@ export default async function SourceFinderPage() {
   if (!data) redirect('/login')
 
   return (
-    <div>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', marginBottom: 4 }}>
-          Source Finder
-        </h1>
-        <p style={{ fontSize: 14, color: '#8B8B8B', margin: 0 }}>
-          Retrouve les vidéos d&apos;origine d&apos;un TikTok, Short ou Reel viral.
-        </p>
-      </div>
-
-      <SourceFinderClient credits={data.credits} history={data.history} />
-    </div>
+    <SourceFinderClient credits={data.credits} history={data.history} />
   )
 }

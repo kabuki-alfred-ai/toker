@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, AlertTriangle, Zap, FileText, Calendar, ArrowRight } from 'lucide-react'
 import { PlatformIcon, detectPlatform } from '@/components/ui/platform-icon'
+import { cn } from '@/lib/utils'
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 type TxStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
@@ -19,19 +22,14 @@ interface TxItem {
 interface UserData {
   credits: { balance: number }
   email: string
+  firstName: string | null
+  lastName: string | null
 }
 
 interface TranscriptionsData {
   items: TxItem[]
   total: number
   page: number
-}
-
-const STATUS_COLORS: Record<TxStatus, string> = {
-  PENDING: '#8B8B8B',
-  PROCESSING: '#5E6AD2',
-  COMPLETED: '#22C55E',
-  FAILED: '#EF4444',
 }
 
 const STATUS_LABELS: Record<TxStatus, string> = {
@@ -60,11 +58,9 @@ function getNextMonday(): string {
   const today = new Date()
   const tomorrow = new Date(today)
   tomorrow.setDate(today.getDate() + 1)
-  // 1 = Monday
   const daysUntilMonday = (1 - tomorrow.getDay() + 7) % 7 || 7
   const nextMonday = new Date(tomorrow)
   nextMonday.setDate(tomorrow.getDate() + (daysUntilMonday === 7 && tomorrow.getDay() === 1 ? 0 : daysUntilMonday))
-  // If tomorrow is already Monday, use it
   if (tomorrow.getDay() === 1) {
     return tomorrow.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
   }
@@ -81,19 +77,13 @@ async function fetchDashboardData(): Promise<{ user: UserData; transcriptions: T
 
   const [userRes, txRes] = await Promise.all([
     fetch(`${backendUrl}/api/v1/users/me`, { headers, cache: 'no-store' }),
-    fetch(`${backendUrl}/api/v1/transcriptions?page=1&limit=5`, { headers, cache: 'no-store' }),
+    fetch(`${backendUrl}/api/v1/transcriptions?page=1&limit=10`, { headers, cache: 'no-store' }),
   ])
 
   if (!userRes.ok || !txRes.ok) redirect('/login')
 
   const [user, transcriptions] = await Promise.all([userRes.json(), txRes.json()])
   return { user, transcriptions }
-}
-
-function creditColor(balance: number): string {
-  if (balance === 0) return '#EF4444'
-  if (balance <= 2) return '#F59E0B'
-  return '#22C55E'
 }
 
 export default async function DashboardPage({
@@ -107,255 +97,159 @@ export default async function DashboardPage({
   const nextMonday = getNextMonday()
 
   return (
-    <div>
+    <div className="space-y-8 max-w-5xl">
       {/* Success banner */}
       {creditsAdded && (
-        <div
-          style={{
-            marginBottom: 20,
-            padding: '12px 16px',
-            borderRadius: 8,
-            background: 'rgba(34,197,94,0.08)',
-            border: '1px solid rgba(34,197,94,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <CheckCircle2 size={16} color="#22C55E" />
-          <span style={{ color: '#22C55E', fontSize: 14 }}>
-            {creditsAdded} crédits ajoutés à votre compte !
+        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+          <CheckCircle2 size={18} className="text-emerald-500" />
+          <span className="text-emerald-700 text-sm font-medium">
+            {creditsAdded} crédits ajoutés avec succès !
           </span>
         </div>
       )}
 
       {/* Low credits warning */}
       {balance <= 2 && (
-        <div
-          style={{
-            marginBottom: 20,
-            padding: '10px 16px',
-            borderRadius: 8,
-            background: 'rgba(245,158,11,0.08)',
-            border: '1px solid rgba(245,158,11,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <AlertTriangle size={16} color="#F59E0B" />
-            <span style={{ color: '#F59E0B', fontSize: 13 }}>
-              Crédits faibles — rechargez pour continuer
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertTriangle size={18} className="text-amber-500" />
+            <span className="text-amber-700 text-sm font-medium">
+              Solde de crédits bas ({balance}) — Rechargez pour continuer !
             </span>
           </div>
-          <Link
-            href="/credits"
-            style={{
-              padding: '4px 12px',
-              borderRadius: 5,
-              background: '#5E6AD2',
-              color: '#fff',
-              fontSize: 12,
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
-          >
-            Recharger
-          </Link>
+          <Button asChild size="sm" variant="default" className="bg-amber-500 hover:bg-amber-600">
+            <Link href="/credits">Recharger</Link>
+          </Button>
         </div>
       )}
 
       {/* Page header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', margin: 0, marginBottom: 4 }}>
-          Dashboard
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-foreground font-albert">
+          Tableau de bord
         </h1>
-        <p style={{ fontSize: 13, color: '#8B8B8B', margin: 0 }}>
-          Bonjour, {user.email}
+        <p className="text-muted-foreground">
+          Bienvenue, <span className="text-primary font-medium">{user.firstName || user.email}</span>
         </p>
       </div>
 
       {/* Stats grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 16,
-          marginBottom: 32,
-        }}
-      >
-        {/* Credits card */}
-        <div
-          style={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 10,
-            padding: '20px 24px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Zap size={14} color="#8B8B8B" />
-            <span style={{ fontSize: 12, color: '#8B8B8B', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Zap size={14} className="text-primary" />
               Crédits disponibles
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <span className={cn("text-3xl font-bold", 
+              balance === 0 ? "text-destructive" : balance <= 2 ? "text-amber-500" : "text-primary"
+            )}>
+              {balance}
             </span>
-          </div>
-          <span style={{ fontSize: 40, fontWeight: 700, color: creditColor(balance), lineHeight: 1 }}>
-            {balance}
-          </span>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Total transcriptions card */}
-        <div
-          style={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 10,
-            padding: '20px 24px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <FileText size={14} color="#8B8B8B" />
-            <span style={{ fontSize: 12, color: '#8B8B8B', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Transcriptions totales
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <FileText size={14} className="text-primary" />
+              Total Transcriptions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <span className="text-3xl font-bold text-foreground">
+              {transcriptions.total}
             </span>
-          </div>
-          <span style={{ fontSize: 40, fontWeight: 700, color: '#F2F2F2', lineHeight: 1 }}>
-            {transcriptions.total}
-          </span>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Next refill card */}
-        <div
-          style={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 10,
-            padding: '20px 24px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Calendar size={14} color="#8B8B8B" />
-            <span style={{ fontSize: 12, color: '#8B8B8B', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Calendar size={14} className="text-primary" />
               Prochaine recharge
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <span className="text-2xl font-bold text-foreground">
+              {nextMonday}
             </span>
-          </div>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#F2F2F2', lineHeight: 1 }}>
-            {nextMonday}
-          </span>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent activity */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#F2F2F2', margin: 0 }}>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground font-albert">
             Activité récente
           </h2>
-          <Link
-            href="/transcriptions"
-            style={{ fontSize: 12, color: '#5E6AD2', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            Voir tout <ArrowRight size={12} />
-          </Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/transcriptions" className="flex items-center gap-1">
+              Voir tout <ArrowRight size={16} />
+            </Link>
+          </Button>
         </div>
 
-        {transcriptions.items.length === 0 ? (
-          <div
-            style={{
-              padding: '32px 0',
-              textAlign: 'center',
-              background: '#111111',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
-            }}
-          >
-            <p style={{ color: '#8B8B8B', fontSize: 13, margin: 0 }}>
-              Aucune transcription pour le moment
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {transcriptions.items.map((tx) => {
-              const platform = detectPlatform(tx.videoUrl)
-              return (
-                <Link
-                  key={tx.id}
-                  href={`/transcriptions/${tx.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    background: '#111111',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    textDecoration: 'none',
-                    transition: 'border-color 0.15s',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: STATUS_COLORS[tx.status],
-                      padding: '2px 7px',
-                      borderRadius: 4,
-                      background: `${STATUS_COLORS[tx.status]}18`,
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {STATUS_LABELS[tx.status]}
-                  </span>
-                  <PlatformIcon platform={platform} />
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: 13,
-                      color: '#C4C4C4',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {tx.title ?? shortUrl(tx.videoUrl)}
-                  </span>
-                  {tx.duration != null && (
-                    <span style={{ fontSize: 11, color: '#666', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {formatDuration(tx.duration)}
-                    </span>
-                  )}
-                  <span style={{ fontSize: 11, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {new Date(tx.createdAt).toLocaleDateString('fr-FR')}
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            {transcriptions.items.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Aucune transcription pour le moment.
+                </p>
+                <Button asChild className="mt-4" variant="outline" size="sm">
+                   <Link href="/transcriptions">Commencer</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {transcriptions.items.map((tx) => {
+                  const platform = detectPlatform(tx.videoUrl)
+                  const statusConfig = {
+                    PENDING: 'bg-muted text-muted-foreground',
+                    PROCESSING: 'bg-sky-50 text-sky-600',
+                    COMPLETED: 'bg-emerald-50 text-emerald-600',
+                    FAILED: 'bg-destructive/10 text-destructive',
+                  }[tx.status]
 
-      {/* CTA */}
-      <div style={{ marginTop: 28 }}>
-        <Link
-          href="/transcriptions"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 20px',
-            borderRadius: 8,
-            background: '#5E6AD2',
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 500,
-            textDecoration: 'none',
-            transition: 'opacity 0.15s',
-          }}
-        >
-          Nouvelle transcription <ArrowRight size={14} />
-        </Link>
+                  return (
+                    <Link
+                      key={tx.id}
+                      href={`/transcriptions/${tx.id}`}
+                      className="group flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors no-underline"
+                    >
+                      <div className={cn(
+                        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
+                        statusConfig
+                      )}>
+                        {STATUS_LABELS[tx.status]}
+                      </div>
+                      <div className="shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <PlatformIcon platform={platform} />
+                      </div>
+                      <span className="flex-1 text-sm font-medium text-foreground truncate">
+                        {tx.title ?? shortUrl(tx.videoUrl)}
+                      </span>
+                      <div className="flex items-center gap-4 shrink-0 text-muted-foreground">
+                        {tx.duration != null && (
+                          <span className="text-xs font-mono">
+                            {formatDuration(tx.duration)}
+                          </span>
+                        )}
+                        <span className="text-[10px] font-medium uppercase">
+                          {new Date(tx.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

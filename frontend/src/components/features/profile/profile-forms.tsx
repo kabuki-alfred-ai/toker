@@ -2,60 +2,23 @@
 
 import { useState } from 'react'
 import { Check, AlertCircle, Loader2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 
-// ─── Shared primitives ─────────────────────────────────────────────────────────
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontSize: 12, color: '#8B8B8B', fontWeight: 500 }}>{label}</label>
-      {children}
-    </div>
-  )
-}
-
-const inputStyle: React.CSSProperties = {
-  background: '#0A0A0A',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 6,
-  padding: '9px 12px',
-  color: '#F2F2F2',
-  fontSize: 14,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-}
+// ─── Shared primitives ──────────────────────────────────────────────────────────
 
 function StatusBanner({ type, msg }: { type: 'success' | 'error'; msg: string }) {
   const isSuccess = type === 'success'
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 6,
-      background: isSuccess ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-      border: `1px solid ${isSuccess ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-      fontSize: 13, color: isSuccess ? '#22C55E' : '#EF4444',
-    }}>
+    <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
+      isSuccess
+        ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+        : 'bg-destructive/10 border border-destructive/20 text-destructive'
+    }`}>
       {isSuccess ? <Check size={14} /> : <AlertCircle size={14} />}
       {msg}
     </div>
-  )
-}
-
-function SaveButton({ loading, label = 'Enregistrer' }: { loading: boolean; label?: string }) {
-  return (
-    <button
-      type="submit"
-      disabled={loading}
-      style={{
-        alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6,
-        padding: '8px 18px', borderRadius: 6, background: '#5E6AD2', color: '#fff',
-        fontSize: 13, fontWeight: 500, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-        opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s',
-      }}
-    >
-      {loading && <Loader2 size={13} className="animate-spin" />}
-      {label}
-    </button>
   )
 }
 
@@ -88,17 +51,32 @@ export function ProfileInfoForm({ initial }: { initial: { firstName: string | nu
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Prénom">
-          <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Prénom" />
-        </Field>
-        <Field label="Nom">
-          <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nom" />
-        </Field>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="firstName">Prénom</Label>
+          <Input
+            id="firstName"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            placeholder="Prénom"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lastName">Nom</Label>
+          <Input
+            id="lastName"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            placeholder="Nom"
+          />
+        </div>
       </div>
       {status && <StatusBanner {...status} />}
-      <SaveButton loading={loading} />
+      <Button type="submit" disabled={loading}>
+        {loading && <Loader2 size={14} className="mr-2 animate-spin" />}
+        Enregistrer
+      </Button>
     </form>
   )
 }
@@ -134,15 +112,33 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Field label="Nouvel email">
-        <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-      </Field>
-      <Field label="Mot de passe actuel (confirmation)">
-        <input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
-      </Field>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="email">Nouvel email</Label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="confirm-password">Mot de passe actuel (confirmation)</Label>
+        <Input
+          id="confirm-password"
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="••••••••"
+          required
+        />
+      </div>
       {status && <StatusBanner {...status} />}
-      <SaveButton loading={loading} label="Changer l'email" />
+      <Button type="submit" disabled={loading}>
+        {loading && <Loader2 size={14} className="mr-2 animate-spin" />}
+        Changer l&apos;email
+      </Button>
     </form>
   )
 }
@@ -183,18 +179,45 @@ export function PasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Field label="Mot de passe actuel">
-        <input style={inputStyle} type="password" value={current} onChange={e => setCurrent(e.target.value)} placeholder="••••••••" required />
-      </Field>
-      <Field label="Nouveau mot de passe">
-        <input style={inputStyle} type="password" value={next} onChange={e => setNext(e.target.value)} placeholder="8 caractères minimum" required />
-      </Field>
-      <Field label="Confirmer le nouveau mot de passe">
-        <input style={inputStyle} type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" required />
-      </Field>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="current-password">Mot de passe actuel</Label>
+        <Input
+          id="current-password"
+          type="password"
+          value={current}
+          onChange={e => setCurrent(e.target.value)}
+          placeholder="••••••••"
+          required
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="new-password">Nouveau mot de passe</Label>
+        <Input
+          id="new-password"
+          type="password"
+          value={next}
+          onChange={e => setNext(e.target.value)}
+          placeholder="8 caractères minimum"
+          required
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="confirm-new-password">Confirmer le nouveau mot de passe</Label>
+        <Input
+          id="confirm-new-password"
+          type="password"
+          value={confirm}
+          onChange={e => setConfirm(e.target.value)}
+          placeholder="••••••••"
+          required
+        />
+      </div>
       {status && <StatusBanner {...status} />}
-      <SaveButton loading={loading} label="Changer le mot de passe" />
+      <Button type="submit" disabled={loading}>
+        {loading && <Loader2 size={14} className="mr-2 animate-spin" />}
+        Changer le mot de passe
+      </Button>
     </form>
   )
 }

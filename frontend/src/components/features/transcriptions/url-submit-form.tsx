@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Zap, Youtube, Instagram, Music, AlertCircle } from 'lucide-react'
 import { apiPost } from '@/lib/api-client'
+import { cn } from '@/lib/utils'
 
 type Platform = 'tiktok' | 'instagram' | 'youtube' | null
 
@@ -12,7 +13,7 @@ const PATTERNS: Record<Exclude<Platform, null>, RegExp> = {
   youtube: /youtube\.com\/shorts\/[\w-]+|youtu\.be\/[\w-]+/,
 }
 
-const PLATFORM_ICONS: Record<Exclude<Platform, null>, React.ComponentType<{ size?: number; color?: string }>> = {
+const PLATFORM_ICONS: Record<Exclude<Platform, null>, React.ComponentType<{ size?: number; className?: string }>> = {
   tiktok: Music,
   instagram: Instagram,
   youtube: Youtube,
@@ -91,120 +92,71 @@ export function UrlSubmitForm({ credits, onSubmitted }: UrlSubmitFormProps) {
   const SelectedIcon = platform ? PLATFORM_ICONS[platform] : null
 
   return (
-    <div style={{ maxWidth: 640 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', marginBottom: 6 }}>
+    <div className="max-w-2xl">
+      <h1 className="text-2xl font-bold text-foreground tracking-tight mb-1">
         Transcrire une vidéo
       </h1>
-      <p style={{ color: '#8B8B8B', fontSize: 14, marginBottom: 28 }}>
+      <p className="text-sm text-muted-foreground mb-8">
         Collez une URL TikTok, Instagram Reels ou YouTube Shorts.
       </p>
 
       {credits === 0 && (
-        <div
-          style={{
-            marginBottom: 20,
-            padding: '12px 16px',
-            borderRadius: 8,
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.25)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <AlertCircle size={16} color="#EF4444" />
-            <span style={{ color: '#EF4444', fontSize: 14 }}>Vous n&apos;avez plus de crédits.</span>
+        <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/25 flex justify-between items-center group animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={18} className="text-destructive" />
+            <span className="text-destructive font-medium text-sm">Vous n&apos;avez plus de crédits.</span>
           </div>
           <a
             href="/credits"
-            style={{
-              padding: '5px 12px',
-              borderRadius: 6,
-              background: '#5E6AD2',
-              color: '#fff',
-              fontSize: 13,
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
+            className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold no-underline hover:bg-primary/90 transition-all shadow-sm"
           >
             Acheter des crédits
           </a>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div 
-          className="mobile-stack"
-          style={{ position: 'relative', display: 'flex', gap: 10 }}
-        >
-          {/* Platform icon indicator */}
-          {platform && SelectedIcon && (
-            <div
-              style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                pointerEvents: 'none',
-                zIndex: 1,
-              }}
-            >
-              <SelectedIcon size={14} color="#5E6AD2" />
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#5E6AD2',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {PLATFORM_LABELS[platform]}
-              </span>
-            </div>
-          )}
-          <input
-            type="url"
-            value={url}
-            onChange={handleChange}
-            placeholder="https://www.tiktok.com/@user/video/..."
-            style={{
-              flex: 1,
-              padding: platform ? '10px 14px 10px 100px' : '10px 14px',
-              borderRadius: 8,
-              background: '#111111',
-              border: `1px solid ${urlError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`,
-              color: '#F2F2F2',
-              fontSize: 14,
-              outline: 'none',
-              transition: 'all 0.15s',
-            }}
-          />
+      <form onSubmit={handleSubmit} className="relative group">
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            {/* Platform icon indicator */}
+            {platform && SelectedIcon && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none z-10 animate-in fade-in slide-in-from-left-2">
+                <SelectedIcon size={16} className="text-primary" />
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-1.5 py-0.5 rounded-sm">
+                  {PLATFORM_LABELS[platform]}
+                </span>
+              </div>
+            )}
+            <input
+              type="url"
+              value={url}
+              onChange={handleChange}
+              placeholder="https://www.tiktok.com/@user/video/..."
+              className={cn(
+                "w-full rounded-xl bg-card border text-sm text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-4 focus:ring-primary/10",
+                platform ? "pl-32 pr-4 py-3.5" : "px-4 py-3.5",
+                urlError ? "border-destructive/50 ring-destructive/10" : "border-border"
+              )}
+            />
+          </div>
           <button
             type="submit"
             disabled={!canSubmit}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 8,
-              background: canSubmit ? '#5E6AD2' : 'rgba(94,106,210,0.3)',
-              color: canSubmit ? '#fff' : '#8B8B8B',
-              fontSize: 14,
-              fontWeight: 500,
-              border: 'none',
-              cursor: canSubmit ? 'pointer' : 'not-allowed',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
+            className={cn(
+              "px-8 py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg",
+              canSubmit 
+                ? "bg-primary text-primary-foreground shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer" 
+                : "bg-muted text-muted-foreground shadow-none cursor-not-allowed grayscale"
+            )}
           >
-            {isSubmitting ? 'Envoi...' : (
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Envoi...
+              </span>
+            ) : (
               <>
-                <Zap size={16} fill={canSubmit ? "currentColor" : "none"} />
+                <Zap size={18} className={cn(canSubmit ? "fill-current" : "fill-none")} />
                 {credits === 0 ? 'Crédits insuffisants' : 'Transcrire'}
               </>
             )}
@@ -212,14 +164,14 @@ export function UrlSubmitForm({ credits, onSubmitted }: UrlSubmitFormProps) {
         </div>
 
         {urlError && (
-          <p style={{ marginTop: 6, fontSize: 12, color: '#EF4444', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <AlertCircle size={12} />
+          <p className="mt-3 text-xs text-destructive font-medium flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+            <AlertCircle size={14} />
             {urlError}
           </p>
         )}
         {serverError && (
-          <p style={{ marginTop: 6, fontSize: 12, color: '#EF4444', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <AlertCircle size={12} />
+          <p className="mt-3 text-xs text-destructive font-medium flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+            <AlertCircle size={14} />
             {serverError}
           </p>
         )}

@@ -6,37 +6,21 @@ interface CreditsBadgeProps {
 }
 
 export function CreditsBadge({ balance }: CreditsBadgeProps) {
-  const color =
-    balance === 0 ? '#EF4444' : balance <= 2 ? '#F59E0B' : '#22C55E'
+  const statusColor =
+    balance === 0 ? 'text-destructive' : balance <= 2 ? 'text-amber-500' : 'text-emerald-500'
 
   return (
     <Link
       href="/credits"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '7px 10px',
-        borderRadius: 7,
-        background: 'rgba(255,255,255,0.04)',
-        border: `1px solid ${color}30`,
-        textDecoration: 'none',
-        transition: 'background 0.15s, border-color 0.15s',
-        cursor: 'pointer',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-        e.currentTarget.style.borderColor = `${color}55`
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-        e.currentTarget.style.borderColor = `${color}30`
-      }}
+      className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50 border border-transparent hover:border-primary/20 no-underline transition-colors group"
     >
-      <Wallet size={14} color={color} strokeWidth={1.8} />
-      <span style={{ fontSize: 13, color, fontWeight: 600 }}>
-        {balance} crédit{balance !== 1 ? 's' : ''}
-      </span>
+      <Wallet size={16} className={statusColor} />
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase font-bold text-muted-foreground leading-none mb-0.5">Crédits</span>
+        <span className="text-sm font-bold text-foreground leading-none">
+          {balance}
+        </span>
+      </div>
     </Link>
   )
 }

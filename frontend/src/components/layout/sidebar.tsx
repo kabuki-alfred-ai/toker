@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search } from 'lucide-react'
 import { CreditsBadge } from '@/components/features/credits/credits-badge'
+import { cn } from '@/lib/utils'
+import { Logo } from '@/components/ui/logo'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -58,52 +60,29 @@ export function Sidebar({ balance, email, firstName, lastName }: SidebarProps) {
 
   return (
     <aside
-      style={{
-        width: 220,
-        height: '100vh',
-        position: 'sticky',
-        top: 0,
-        background: '#111111',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '24px 0',
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}
+      className="hidden md:flex flex-col w-[220px] h-screen sticky top-0 bg-sidebar border-r border-sidebar-border py-6 overflow-hidden shrink-0"
     >
       {/* Logo */}
-      <div style={{ padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Video size={18} color="#5E6AD2" />
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#F2F2F2', letterSpacing: '-0.02em' }}>
-          ViralScript
-        </span>
+      <div className="px-5 pb-6 mb-2 border-b border-sidebar-border">
+        <Logo variant="full" />
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '16px 12px' }}>
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
               key={href}
               href={href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 10px',
-                borderRadius: 6,
-                fontSize: 14,
-                fontWeight: isActive ? 500 : 400,
-                color: isActive ? '#F2F2F2' : '#8B8B8B',
-                background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
-                textDecoration: 'none',
-                marginBottom: 2,
-                transition: 'all 0.15s',
-              }}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 no-underline",
+                isActive 
+                  ? "font-bold text-foreground bg-accent/20" 
+                  : "font-medium text-muted-foreground hover:bg-accent/10 active:scale-95"
+              )}
             >
-              <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+              <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={cn(isActive ? "text-primary" : "text-muted-foreground/60")} />
               {label}
             </Link>
           )
@@ -111,123 +90,52 @@ export function Sidebar({ balance, email, firstName, lastName }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="px-4 py-3 border-t border-sidebar-border space-y-3">
         <CreditsBadge balance={balance} />
 
         {/* Avatar dropdown */}
-        <div ref={dropdownRef} style={{ position: 'relative' }}>
+        <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setOpen((o) => !o)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              width: '100%',
-              background: open ? 'rgba(255,255,255,0.05)' : 'transparent',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 8,
-              padding: '8px 10px',
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-            onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = 'transparent' }}
+            className={cn(
+              "flex items-center gap-3 w-full border rounded-xl p-2 cursor-pointer transition-all duration-200 active:scale-[0.98]",
+              open ? "bg-accent/20 border-accent/40 shadow-sm" : "bg-transparent border-sidebar-border hover:bg-accent/10"
+            )}
           >
             {/* Avatar circle */}
-            <div style={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              background: 'rgba(94,106,210,0.2)',
-              border: '1px solid rgba(94,106,210,0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontSize: 12,
-              fontWeight: 700,
-              color: '#5E6AD2',
-              letterSpacing: '0.02em',
-            }}>
+            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center shrink-0 text-xs font-black text-primary tracking-tighter">
               {initials}
             </div>
-            <span style={{
-              flex: 1,
-              fontSize: 13,
-              color: '#C4C4C4',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              textAlign: 'left',
-            }}>
+            <span className="flex-1 text-[13px] text-foreground font-semibold truncate text-left">
               {displayName}
             </span>
           </button>
 
           {/* Dropdown menu */}
           {open && (
-            <div style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 6px)',
-              left: 0,
-              right: 0,
-              background: '#1A1A1A',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-              zIndex: 50,
-            }}>
+            <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 bg-card border border-border rounded-xl overflow-hidden shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
               {/* User info header */}
-              <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <p style={{ fontSize: 12, color: '#8B8B8B', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</p>
+              <div className="px-4 py-3 border-b border-border bg-muted/30">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-0.5">Compte</p>
+                <p className="text-[12px] text-foreground font-medium truncate">{email}</p>
               </div>
 
               {/* Profile link */}
               <Link
                 href="/profile"
                 onClick={() => setOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '10px 14px',
-                  fontSize: 13,
-                  color: '#C4C4C4',
-                  textDecoration: 'none',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                className="flex items-center gap-2 px-4 py-3 text-[13px] text-foreground font-medium no-underline transition-colors hover:bg-accent/20"
               >
-                <UserCircle size={14} />
+                <UserCircle size={16} className="text-muted-foreground" />
                 Mon profil
               </Link>
-
-              {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: '100%',
-                  padding: '10px 14px',
-                  fontSize: 13,
-                  color: '#EF4444',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                className="flex items-center gap-2 w-full px-4 py-3 text-[13px] text-destructive font-bold bg-transparent border-none cursor-pointer text-left transition-colors hover:bg-destructive/10"
               >
-                <LogOut size={14} />
+                <LogOut size={16} />
                 Se déconnecter
               </button>
             </div>

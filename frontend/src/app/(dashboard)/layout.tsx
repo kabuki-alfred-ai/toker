@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { BottomNav } from '@/components/layout/bottom-nav'
+import { Logo } from '@/components/ui/logo'
 
 async function fetchMe() {
   const cookieStore = await cookies()
@@ -22,22 +23,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect('/api/clear-session')
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0A0A0A', flexDirection: 'row' }}>
-      <div className="hide-on-mobile">
+    <div className="flex min-h-screen bg-background flex-row">
+      <div className="hidden md:block">
         <Sidebar balance={user.credits.balance} email={user.email} firstName={user.firstName} lastName={user.lastName} />
       </div>
       
-      <main style={{ 
-        flex: 1, 
-        padding: '24px 16px', // Smaller padding for mobile
-        paddingBottom: 'calc(80px + env(safe-area-inset-bottom))', // Space for bottom nav
-        color: '#F2F2F2',
-        overflowX: 'hidden'
-      }}>
-        {/* Desktop Sidebar is hidden on mobile, but maybe we need a mobile top bar for Logo/Credits */}
-        <div className="show-on-mobile" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#5E6AD2' }}>ViralScript</span>
-          <div style={{ background: 'rgba(94,106,210,0.1)', padding: '4px 10px', borderRadius: 20, fontSize: 12, color: '#5E6AD2', fontWeight: 600 }}>
+      <main className="flex-1 p-4 md:p-6 pb-[calc(80px+env(safe-area-inset-bottom))] text-foreground overflow-x-hidden">
+        {/* Mobile Top Bar */}
+        <div className="md:hidden mb-5 flex items-center justify-between">
+          <Logo variant="full" className="scale-90 origin-left" />
+          <div className="bg-primary/10 px-3 py-1 rounded-full text-xs text-primary font-semibold">
             {user.credits.balance} crédits
           </div>
         </div>

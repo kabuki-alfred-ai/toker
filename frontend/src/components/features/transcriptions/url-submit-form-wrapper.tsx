@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { Clock, Copy, Plus, ExternalLink, Check, Loader2, AlertCircle } from 'lucide-react'
 import { UrlSubmitForm } from './url-submit-form'
 import { TranscriptionStatus } from './transcription-status'
+import { cn } from '@/lib/utils'
 
 type Phase = 'idle' | 'polling' | 'done' | 'error'
 
@@ -60,9 +61,9 @@ export function UrlSubmitFormWrapper({ credits }: Props) {
 
   if (phase === 'polling' && transcriptionId) {
     return (
-      <div>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Loader2 size={24} className="animate-spin" color="#5E6AD2" />
+      <div className="max-w-2xl animate-in fade-in duration-500">
+        <h1 className="text-xl font-bold text-foreground mb-6 flex items-center gap-3">
+          <Loader2 size={24} className="animate-spin text-primary" />
           Transcription en cours
         </h1>
         <TranscriptionStatus
@@ -77,90 +78,62 @@ export function UrlSubmitFormWrapper({ credits }: Props) {
   if (phase === 'done' && completedText !== null) {
     const hasSegments = segments.length > 0
     return (
-      <div style={{ maxWidth: 640 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Check size={24} color="#22C55E" />
+      <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <Check size={24} />
+            </div>
             Transcription terminée
           </h1>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleCopy}
-              style={{
-                background: copied ? 'rgba(34,197,94,0.15)' : '#5E6AD2',
-                border: 'none', borderRadius: 6,
-                color: copied ? '#22C55E' : '#fff',
-                fontSize: 13, fontWeight: 500,
-                padding: '7px 16px', cursor: 'pointer',
-                transition: 'all 0.15s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
+              className={cn(
+                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg",
+                copied 
+                  ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+                  : "bg-primary text-primary-foreground shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+              )}
             >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? 'Copié !' : 'Copier'}
             </button>
             <button
               onClick={reset}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 6,
-                color: '#8B8B8B',
-                fontSize: 13,
-                padding: '7px 14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'background 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-card border border-border text-sm font-bold text-muted-foreground hover:text-foreground transition-all active:scale-[0.98]"
             >
-              <Plus size={14} />
+              <Plus size={16} />
               Nouvelle
             </button>
             {transcriptionId && (
               <a
                 href={`/transcriptions/${transcriptionId}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '7px 14px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#8B8B8B',
-                  fontSize: 13,
-                  textDecoration: 'none',
-                  transition: 'background 0.15s'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-card border border-border text-sm font-bold text-muted-foreground hover:text-foreground no-underline transition-all"
               >
                 <span>Voir détail</span>
-                <ExternalLink size={14} />
+                <ExternalLink size={16} />
               </a>
             )}
           </div>
         </div>
 
         {hasSegments ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 440, overflowY: 'auto' }}>
+          <div className="space-y-1 max-h-[500px] overflow-y-auto p-2 bg-card/30 rounded-2xl border border-border/50">
             {segments.map((seg, i) => (
-              <div key={i} style={{ display: 'flex', gap: 14, padding: '8px 14px', borderRadius: 6, background: '#111111', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ fontSize: 11, color: '#5E6AD2', fontFamily: 'monospace', whiteSpace: 'nowrap', paddingTop: 2, minWidth: 42, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Clock size={10} />
+              <div key={i} className="flex gap-5 p-4 rounded-xl hover:bg-background/50 transition-colors">
+                <span className="flex items-center gap-1.5 text-xs font-bold text-primary font-mono shrink-0 h-fit mt-0.5 px-2 py-0.5 rounded bg-primary/10">
+                  <Clock size={12} />
                   {formatTime(seg.start)}
                 </span>
-                <span style={{ fontSize: 14, color: '#E5E5E5', lineHeight: 1.6 }}>{seg.text}</span>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {seg.text}
+                </p>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ padding: '20px 24px', borderRadius: 8, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'pre-wrap', color: '#F2F2F2', fontSize: 14, lineHeight: 1.7, maxHeight: 400, overflowY: 'auto' }}>
+          <div className="p-8 rounded-2xl bg-card border border-border text-sm text-foreground leading-relaxed whitespace-pre-wrap shadow-sm">
             {completedText}
           </div>
         )}
@@ -170,17 +143,20 @@ export function UrlSubmitFormWrapper({ credits }: Props) {
 
   if (phase === 'error') {
     return (
-      <div style={{ maxWidth: 640 }}>
-        <div style={{ padding: '16px 20px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', gap: 12 }}>
-          <AlertCircle size={20} color="#EF4444" style={{ marginTop: 2 }} />
+      <div className="max-w-2xl animate-in zoom-in-95 duration-300">
+        <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 flex gap-4">
+          <AlertCircle size={24} className="text-destructive shrink-0 mt-1" />
           <div>
-            <p style={{ color: '#EF4444', fontSize: 14, margin: 0, fontWeight: 500 }}>La transcription a échoué.</p>
-            <p style={{ color: '#8B8B8B', fontSize: 13, margin: '6px 0 0' }}>Votre crédit a été remboursé automatiquement.</p>
+            <p className="text-destructive font-bold mb-1">La transcription a échoué.</p>
+            <p className="text-sm text-muted-foreground mb-4">Votre crédit a été remboursé automatiquement.</p>
+            <button 
+              onClick={reset} 
+              className="px-6 py-2 rounded-xl bg-destructive/10 text-destructive text-sm font-bold hover:bg-destructive/20 transition-all active:scale-[0.98]"
+            >
+              Réessayer
+            </button>
           </div>
         </div>
-        <button onClick={reset} style={{ marginTop: 16, background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#8B8B8B', fontSize: 13, padding: '6px 14px', cursor: 'pointer', transition: 'background 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-          Réessayer
-        </button>
       </div>
     )
   }

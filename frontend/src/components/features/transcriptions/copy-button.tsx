@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -13,26 +15,14 @@ export function CopyButton({ text }: { text: string }) {
   }
 
   return (
-    <button
+    <Button
       onClick={handleCopy}
-      style={{
-        background: copied ? 'rgba(34,197,94,0.15)' : '#5E6AD2',
-        border: 'none',
-        borderRadius: 6,
-        color: copied ? '#22C55E' : '#fff',
-        fontSize: 13,
-        fontWeight: 500,
-        padding: '7px 16px',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        whiteSpace: 'nowrap',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-      }}
+      size="sm"
+      variant={copied ? 'outline' : 'default'}
+      className={cn(copied && 'text-emerald-600 border-emerald-300')}
     >
-      {copied ? <Check size={14} /> : <Copy size={14} />}
+      {copied ? <Check size={14} className="mr-1.5" /> : <Copy size={14} className="mr-1.5" />}
       {copied ? 'Copié !' : 'Copier tout'}
-    </button>
+    </Button>
   )
 }

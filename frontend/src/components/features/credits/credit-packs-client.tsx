@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { Check, Loader2 } from 'lucide-react'
 
 interface Pack {
   id: string
@@ -34,56 +36,53 @@ export function CreditPacksClient({ packs }: { packs: readonly Pack[] }) {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3">
         {packs.map((pack) => (
           <div
             key={pack.id}
-            className="mobile-stack"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '16px 20px',
-              borderRadius: 10,
-              background: '#111111',
-              border: `1px solid ${pack.recommended ? 'rgba(94,106,210,0.5)' : 'rgba(255,255,255,0.06)'}`,
-              position: 'relative',
-              gap: 16,
-            }}
+            className={cn(
+              "relative flex items-center justify-between p-5 rounded-2xl bg-card border transition-all duration-300",
+              pack.recommended 
+                ? "border-primary shadow-lg shadow-primary/5 ring-1 ring-primary/20" 
+                : "border-border hover:border-primary/30"
+            )}
           >
             {pack.recommended && (
-              <span style={{ position: 'absolute', top: -10, left: 16, background: '#5E6AD2', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.05em' }}>
-                RECOMMANDÉ
+              <span className="absolute -top-2.5 left-6 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded shadow-sm tracking-wider uppercase">
+                Recommandé
               </span>
             )}
-            <div>
-              <p style={{ color: '#F2F2F2', fontSize: 16, fontWeight: 600, margin: 0 }}>{pack.credits} crédits</p>
-              <p style={{ color: '#8B8B8B', fontSize: 13, margin: '2px 0 0' }}>{pack.credits} transcriptions</p>
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-foreground">{pack.credits} crédits</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Check size={12} className="text-emerald-500" />
+                <span>{pack.credits} transcriptions</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <span style={{ color: '#F2F2F2', fontSize: 18, fontWeight: 600 }}>{pack.price}</span>
+            <div className="flex items-center gap-6">
+              <span className="text-xl font-black text-foreground">{pack.price}</span>
               <button
                 onClick={() => handleBuy(pack.id)}
                 disabled={loading !== null}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 6,
-                  background: loading === pack.id ? 'rgba(94,106,210,0.5)' : '#5E6AD2',
-                  color: '#fff',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  border: 'none',
-                  cursor: loading !== null ? 'not-allowed' : 'pointer',
-                }}
+                className={cn(
+                  "px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                  loading === pack.id
+                    ? "bg-primary/50 text-primary-foreground cursor-not-allowed"
+                    : "bg-primary text-primary-foreground hover:scale-[1.05] active:scale-[0.95] cursor-pointer shadow-md shadow-primary/10"
+                )}
               >
-                {loading === pack.id ? '...' : 'Acheter'}
+                {loading === pack.id ? <Loader2 size={18} className="animate-spin" /> : 'Acheter'}
               </button>
             </div>
           </div>
         ))}
       </div>
-      {error && <p style={{ marginTop: 12, fontSize: 13, color: '#EF4444' }}>{error}</p>}
+      {error && (
+        <p className="mt-4 p-3 rounded-lg bg-destructive/5 text-destructive text-sm font-medium animate-in fade-in slide-in-from-top-1">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

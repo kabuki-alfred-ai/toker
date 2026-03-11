@@ -2,6 +2,10 @@ import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { FileText, Calendar, Clock, AlertCircle, Loader2, ExternalLink } from 'lucide-react'
 import { CopyButton } from '@/components/features/transcriptions/copy-button'
+import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 interface Segment { start: number; end: number; text: string }
 
@@ -39,8 +43,6 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// ─── Video embed helper ────────────────────────────────────────────────────────
-
 type EmbedInfo =
   | { type: 'youtube'; embedUrl: string }
   | { type: 'tiktok'; embedUrl: string }
@@ -70,128 +72,157 @@ export default async function TranscriptionDetailPage({ params }: { params: Prom
   const embed = getEmbedInfo(tx.videoUrl)
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div className="max-w-5xl space-y-8">
       {/* Header */}
-      <div 
-        className="mobile-stack"
-        style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}
-      >
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#F2F2F2', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FileText size={20} color="#5E6AD2" />
-            {tx.title ?? 'Transcription'}
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#8B8B8B' }}>
-              <Calendar size={12} />
-              {new Date(tx.createdAt).toLocaleString('fr-FR')}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+              <FileText size={20} />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground font-albert">
+              {tx.title ?? 'Transcription'}
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5 uppercase tracking-wider">
+              <Calendar size={14} className="text-primary" />
+              {new Date(tx.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
             {tx.duration != null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#8B8B8B' }}>
-                <Clock size={12} />
+              <div className="flex items-center gap-1.5 uppercase tracking-wider">
+                <Clock size={14} className="text-primary" />
                 {formatTime(tx.duration)}
               </div>
             )}
-            <a href={tx.videoUrl} target="_blank" rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5E6AD2', textDecoration: 'none', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <ExternalLink size={11} />
-              {tx.videoUrl}
-            </a>
+            <Button asChild variant="link" className="h-auto p-0 text-xs font-bold text-primary">
+              <a href={tx.videoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 no-underline">
+                <ExternalLink size={14} />
+                Lien source
+              </a>
+            </Button>
           </div>
         </div>
-        {tx.status === 'COMPLETED' && tx.text && <CopyButton text={tx.text} />}
       </div>
 
       {tx.status === 'COMPLETED' && tx.text ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-          {/* Video player */}
-          {embed && <VideoPlayer embed={embed} />}
-
-          {/* Keywords */}
-          {hasKeywords && (
-            <div>
-              <p style={{ fontSize: 12, color: '#555', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Mots-clés</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {tx.keywords!.map((kw, i) => (
-                  <span key={i} style={{ fontSize: 12, color: '#A5B4FC', background: 'rgba(94,106,210,0.12)', border: '1px solid rgba(94,106,210,0.25)', padding: '3px 10px', borderRadius: 20 }}>
-                    {kw}
-                  </span>
-                ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <div className="lg:col-span-8 space-y-8">
+            {/* Keywords */}
+            {hasKeywords && (
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mots-clés</h3>
+                <div className="flex flex-wrap gap-2">
+                  {tx.keywords!.map((kw, i) => (
+                    <Badge key={i} variant="secondary" className="px-3 py-1">
+                      {kw}
+                    </Badge>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Transcription Content */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Texte complet</h3>
+                {tx.text && <CopyButton text={tx.text} />}
+              </div>
+              {hasSegments ? (
+                <div className="grid gap-3">
+                  {tx.segments!.map((seg, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-4 flex gap-4">
+                        <div className="shrink-0">
+                           <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded bg-primary/10">
+                            {formatTime(seg.start)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {seg.text}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                    {tx.text}
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Transcription */}
-          <div>
-            <p style={{ fontSize: 12, color: '#555', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Transcription</p>
-            {hasSegments ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {tx.segments!.map((seg, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 14, padding: '8px 14px', borderRadius: 6, background: '#111111', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: 11, color: '#5E6AD2', fontFamily: 'monospace', whiteSpace: 'nowrap', paddingTop: 2, minWidth: 42, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={10} />{formatTime(seg.start)}
-                    </span>
-                    <span style={{ fontSize: 14, color: '#E5E5E5', lineHeight: 1.6 }}>{seg.text}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="lg:col-span-4 h-fit lg:sticky lg:top-8">
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Aperçu vidéo</h3>
+            {embed ? (
+               <VideoPlayer embed={embed} />
             ) : (
-              <div style={{ padding: '20px 24px', borderRadius: 8, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'pre-wrap', color: '#E5E5E5', fontSize: 14, lineHeight: 1.75 }}>
-                {tx.text}
-              </div>
+              <Card>
+                <CardContent className="p-12 text-center">
+                   <FileText size={32} className="mx-auto text-muted-foreground/20 mb-4" />
+                   <p className="text-xs text-muted-foreground">Aucun aperçu disponible.</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
       ) : tx.status === 'FAILED' ? (
-        <div style={{ padding: '16px 20px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', gap: 12 }}>
-          <AlertCircle size={20} color="#EF4444" style={{ marginTop: 2, flexShrink: 0 }} />
-          <div>
-            <p style={{ color: '#EF4444', fontSize: 14, margin: 0, fontWeight: 500 }}>La transcription a échoué.</p>
-            <p style={{ color: '#8B8B8B', fontSize: 13, margin: '6px 0 0' }}>Vidéo privée ou inaccessible. 1 crédit a été remboursé automatiquement.</p>
-            {tx.errorMsg && <p style={{ color: '#555', fontSize: 12, margin: '8px 0 0', fontFamily: 'monospace' }}>{tx.errorMsg}</p>}
-          </div>
-        </div>
+        <Card className="bg-destructive/5">
+          <CardContent className="p-8 flex gap-4">
+            <AlertCircle size={32} className="text-destructive shrink-0" />
+            <div className="space-y-2">
+              <CardTitle className="text-destructive font-bold font-albert">Échec de la transcription</CardTitle>
+              <CardDescription>La vidéo est inaccessible. Le crédit a été remboursé.</CardDescription>
+              {tx.errorMsg && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Une erreur technique s&apos;est produite. Notre équipe en est informée.
+                </div>
+              )}
+              <Button asChild variant="outline" size="sm" className="mt-4">
+                 <a href="/transcriptions">Réessayer</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div style={{ color: '#8B8B8B', fontSize: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Loader2 size={18} className="animate-spin" />
-          Traitement en cours… Actualisez la page dans quelques instants.
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <Loader2 size={32} className="animate-spin text-primary" />
+          <p className="text-sm font-medium">Traitement en cours…</p>
         </div>
       )}
     </div>
   )
 }
 
-// ─── VideoPlayer ───────────────────────────────────────────────────────────────
-
 function VideoPlayer({ embed }: { embed: NonNullable<EmbedInfo> }) {
   if (embed.type === 'instagram') {
     return (
-      <div style={{ padding: '14px 16px', borderRadius: 8, background: '#111', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 13, color: '#8B8B8B' }}>Instagram Reels ne supporte pas l'intégration directe.</span>
-        <a href={embed.originalUrl} target="_blank" rel="noreferrer"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6, background: 'rgba(94,106,210,0.15)', color: '#5E6AD2', fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-          <ExternalLink size={13} /> Ouvrir Instagram
-        </a>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center flex flex-col items-center gap-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">Les Reels Instagram ne supportent pas l&apos;intégration directe.</p>
+          <Button asChild size="sm">
+            <a href={embed.originalUrl} target="_blank" rel="noreferrer" className="no-underline">
+              Ouvrir Instagram
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
     )
   }
 
-  const aspectRatio = embed.type === 'tiktok' ? '9/16' : '9/16'
-  const maxHeight = embed.type === 'tiktok' ? 640 : 560
-  const maxWidth = embed.type === 'tiktok' ? 320 : 315
-
   return (
-    <div>
-      <p style={{ fontSize: 12, color: '#555', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Vidéo</p>
-      <div style={{ maxWidth, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', background: '#000' }}>
-        <iframe
-          src={embed.embedUrl}
-          style={{ display: 'block', width: '100%', aspectRatio, maxHeight, border: 'none' }}
-          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
+    <div className="rounded-lg overflow-hidden border bg-black aspect-[9/16]">
+      <iframe
+        src={embed.embedUrl}
+        className="w-full h-full"
+        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+        allowFullScreen
+        style={{ border: 'none' }}
+      />
     </div>
   )
 }

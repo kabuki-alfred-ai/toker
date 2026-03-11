@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { Check, Loader2, Circle, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type Status = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
@@ -29,12 +31,25 @@ const STEPS: Step[] = [
 function StepIndicator({ step, status }: { step: Step; status: Status }) {
   const done = step.doneWhen.includes(status)
   const active = step.activeWhen.includes(status) && !done
+  
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{ fontSize: 16, color: done ? '#22C55E' : active ? '#5E6AD2' : '#555' }}>
-        {done ? '✓' : active ? '↻' : '○'}
-      </span>
-      <span style={{ fontSize: 14, color: done ? '#F2F2F2' : active ? '#A5B4FC' : '#555' }}>
+    <div className="flex items-center gap-4 animate-in slide-in-from-left-2 duration-300">
+      <div className={cn(
+        "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500",
+        done ? "bg-emerald-500/20 text-emerald-500" : 
+        active ? "bg-primary/20 text-primary" : 
+        "bg-muted text-muted-foreground/30"
+      )}>
+        {done ? <Check size={14} strokeWidth={3} /> : 
+         active ? <Loader2 size={14} className="animate-spin" /> : 
+         <Circle size={10} fill="currentColor" />}
+      </div>
+      <span className={cn(
+        "text-sm font-medium transition-colors duration-500",
+        done ? "text-foreground font-bold" : 
+        active ? "text-primary font-bold" : 
+        "text-muted-foreground"
+      )}>
         {step.label}{active ? '…' : ''}
       </span>
     </div>
@@ -62,10 +77,10 @@ export function TranscriptionStatus({ transcriptionId, onDone, onError }: Props)
         const json = await res.json() as TranscriptionData
         setData(json)
         if (json.status === 'COMPLETED') {
-          clearInterval(intervalRef.current!)
+          if (intervalRef.current) clearInterval(intervalRef.current)
           onDone(json.text ?? '', json.segments ?? [])
         } else if (json.status === 'FAILED') {
-          clearInterval(intervalRef.current!)
+          if (intervalRef.current) clearInterval(intervalRef.current)
           onError()
         }
       } catch (err) {
@@ -81,19 +96,20 @@ export function TranscriptionStatus({ transcriptionId, onDone, onError }: Props)
   const status = data?.status ?? 'PENDING'
 
   return (
-    <div style={{ maxWidth: 480 }}>
-      <p style={{ color: '#8B8B8B', fontSize: 13, marginBottom: 20 }}>
-        {status === 'PENDING' ? "En file d'attente…" : status === 'PROCESSING' ? 'Traitement en cours…' : ''}
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="max-w-md space-y-6">
+      <div className="space-y-4 py-2">
         {STEPS.map((step) => (
           <StepIndicator key={step.label} step={step} status={status} />
         ))}
       </div>
+      
       {status === 'FAILED' && (
-        <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-          <p style={{ color: '#EF4444', fontSize: 14, margin: 0 }}>La vidéo est peut-être privée ou le lien invalide.</p>
-          <p style={{ color: '#8B8B8B', fontSize: 13, margin: '6px 0 0' }}>Votre crédit a été remboursé automatiquement.</p>
+        <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 flex gap-4 animate-in shake-1 duration-500">
+          <AlertCircle size={20} className="text-destructive shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-destructive text-sm font-bold">La vidéo est peut-être privée ou le lien invalide.</p>
+            <p className="text-muted-foreground text-xs font-medium">Votre crédit a été remboursé automatiquement.</p>
+          </div>
         </div>
       )}
     </div>

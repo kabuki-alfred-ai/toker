@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { apiPost } from '@/lib/api-client'
+import { Logo } from '@/components/ui/logo'
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -48,64 +49,64 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm" style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <CardHeader>
-        <CardTitle style={{ color: '#F2F2F2' }}>Connexion</CardTitle>
-        <CardDescription style={{ color: '#8B8B8B' }}>
-          Accédez à vos transcriptions
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="email" style={{ color: '#F2F2F2' }}>Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="vous@exemple.com"
-              {...register('email')}
-              style={{ background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', color: '#F2F2F2' }}
-            />
-            {errors.email && (
-              <p className="text-sm" style={{ color: '#EF4444' }}>{errors.email.message}</p>
+    <div className="flex flex-col items-center gap-6 w-full px-4 max-w-lg mx-auto">
+      <Logo variant="full" className="scale-110" />
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Connexion</CardTitle>
+          <CardDescription>
+            Accédez à vos transcriptions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="vous@exemple.com"
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="password">Mot de passe</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Votre mot de passe"
+                {...register('password')}
+              />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password.message}</p>
+              )}
+            </div>
+
+            {serverError && (
+              <p className="text-sm text-destructive">{serverError}</p>
             )}
-          </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="password" style={{ color: '#F2F2F2' }}>Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Votre mot de passe"
-              {...register('password')}
-              style={{ background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', color: '#F2F2F2' }}
-            />
-            {errors.password && (
-              <p className="text-sm" style={{ color: '#EF4444' }}>{errors.password.message}</p>
-            )}
-          </div>
+            <Button
+              type="submit"
+              disabled={!isValid || isSubmitting}
+              className="w-full"
+            >
+              {isSubmitting ? 'Connexion...' : 'Se connecter'}
+            </Button>
 
-          {serverError && (
-            <p className="text-sm" style={{ color: '#EF4444' }}>{serverError}</p>
-          )}
-
-          <Button
-            type="submit"
-            disabled={!isValid || isSubmitting}
-            className="w-full"
-            style={{ background: '#5E6AD2', color: '#fff' }}
-          >
-            {isSubmitting ? 'Connexion...' : 'Se connecter'}
-          </Button>
-
-          <p className="text-sm text-center" style={{ color: '#8B8B8B' }}>
-            Pas encore de compte ?{' '}
-            <Link href="/register" style={{ color: '#5E6AD2' }}>
-              S&apos;inscrire
-            </Link>
-          </p>
-        </form>
-      </CardContent>
-    </Card>
+            <p className="text-sm text-center text-muted-foreground">
+              Pas encore de compte ?{' '}
+              <Link href="/register" className="text-primary hover:underline">
+                S&apos;inscrire
+              </Link>
+            </p>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

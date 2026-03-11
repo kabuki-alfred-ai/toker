@@ -2,6 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { User } from 'lucide-react'
 import { ProfileInfoForm, EmailForm, PasswordForm } from '@/components/features/profile/profile-forms'
+import { LogoutButton } from '@/components/features/profile/logout-button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 interface UserProfile {
   id: string
@@ -23,49 +25,62 @@ async function fetchProfile(): Promise<UserProfile | null> {
   return res.json()
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ paddingBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 32 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: '#F2F2F2', margin: '0 0 4px' }}>{title}</h2>
-        {description && <p style={{ fontSize: 13, color: '#666', margin: 0 }}>{description}</p>}
-      </div>
-      {children}
-    </div>
-  )
-}
-
 export default async function ProfilePage() {
   const profile = await fetchProfile()
   if (!profile) redirect('/login')
 
   return (
-    <div style={{ maxWidth: 560 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(94,106,210,0.15)', border: '1px solid rgba(94,106,210,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <User size={18} color="#5E6AD2" />
+    <div className="max-w-2xl space-y-8">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+          <User size={20} className="text-primary" />
         </div>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#F2F2F2', margin: 0 }}>
+        <div className="space-y-0.5">
+          <h1 className="text-2xl font-bold text-foreground font-albert">
             {profile.firstName || profile.lastName
               ? `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim()
               : 'Mon profil'}
           </h1>
-          <p style={{ fontSize: 13, color: '#666', margin: 0 }}>{profile.email}</p>
+          <p className="text-sm text-muted-foreground">{profile.email}</p>
         </div>
       </div>
 
-      <Section title="Informations personnelles" description="Votre prénom et nom affichés dans l'application.">
-        <ProfileInfoForm initial={{ firstName: profile.firstName, lastName: profile.lastName }} />
-      </Section>
+      <div className="grid gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold font-albert">Informations personnelles</CardTitle>
+            <CardDescription>Votre prénom et nom affichés dans l'application.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfileInfoForm initial={{ firstName: profile.firstName, lastName: profile.lastName }} />
+          </CardContent>
+        </Card>
 
-      <Section title="Adresse email" description="Votre email de connexion. Une confirmation de mot de passe est requise.">
-        <EmailForm currentEmail={profile.email} />
-      </Section>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold font-albert">Adresse email</CardTitle>
+            <CardDescription>Votre email de connexion. Une confirmation de mot de passe est requise.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmailForm currentEmail={profile.email} />
+          </CardContent>
+        </Card>
 
-      <Section title="Mot de passe" description="Choisissez un mot de passe fort d'au moins 8 caractères.">
-        <PasswordForm />
-      </Section>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold font-albert">Mot de passe</CardTitle>
+            <CardDescription>Choisissez un mot de passe fort d'au moins 8 caractères.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PasswordForm />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Logout button — mobile only */}
+      <div className="sm:hidden pt-2">
+        <LogoutButton />
+      </div>
     </div>
   )
 }

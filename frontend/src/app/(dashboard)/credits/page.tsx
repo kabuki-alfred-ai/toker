@@ -1,6 +1,9 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { CreditPacksClient } from '@/components/features/credits/credit-packs-client'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 const PACKS = [
   { id: 'pack_10', credits: 10, price: '9,99€', label: '10 crédits' },
@@ -63,11 +66,11 @@ const REASON_LABELS: Record<TransactionReason, string> = {
   WEEKLY_RESET: 'Recharge hebdo',
 }
 
-const REASON_COLORS: Record<TransactionReason, string> = {
-  TRANSCRIPTION_USED: '#EF4444',
-  TRANSCRIPTION_REFUND: '#22C55E',
-  PURCHASE: '#5E6AD2',
-  WEEKLY_RESET: '#F59E0B',
+const REASON_VARIANTS: Record<TransactionReason, string> = {
+  TRANSCRIPTION_USED: 'destructive',
+  TRANSCRIPTION_REFUND: 'success',
+  PURCHASE: 'default',
+  WEEKLY_RESET: 'warning',
 }
 
 function shortDesc(description: string | null, reason: TransactionReason): string {
@@ -88,83 +91,69 @@ export default async function CreditsPage() {
   const { balance, nextReset, history } = info
 
   return (
-    <div style={{ maxWidth: 640 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, color: '#F2F2F2', marginBottom: 6 }}>Crédits</h1>
-
-      {/* Current balance */}
-      <div style={{ marginBottom: 32, padding: '20px 24px', borderRadius: 10, background: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <p style={{ color: '#8B8B8B', fontSize: 13, margin: '0 0 4px' }}>Solde actuel</p>
-        <p style={{ color: '#F2F2F2', fontSize: 42, fontWeight: 700, margin: 0, lineHeight: 1 }}>
-          {balance}
-          <span style={{ fontSize: 16, fontWeight: 400, color: '#8B8B8B', marginLeft: 8 }}>crédits</span>
-        </p>
-        <p style={{ color: '#555', fontSize: 12, margin: '10px 0 0' }}>
-          Reset gratuit le {nextReset} — les wallets &lt; 5 crédits sont rechargés à 5
-        </p>
+    <div className="max-w-2xl space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-foreground font-albert">Crédits</h1>
+        <p className="text-muted-foreground">Gérez votre solde et achetez des recharges.</p>
       </div>
 
-      {/* Packs */}
-      <p style={{ color: '#8B8B8B', fontSize: 13, marginBottom: 14 }}>Acheter des crédits</p>
-      <CreditPacksClient packs={PACKS} />
+      <Card>
+        <CardHeader className="pb-2">
+          <CardDescription>Solde actuel</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-baseline gap-2">
+            <span className={cn("text-4xl font-bold", balance === 0 ? "text-destructive" : "text-primary")}>
+              {balance}
+            </span>
+            <span className="text-muted-foreground font-medium">crédits</span>
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Recharge automatique le {nextReset} (les comptes &lt; 5 crédits sont rechargés à 5).
+          </p>
+        </CardContent>
+      </Card>
 
-      {/* History */}
-      <div style={{ marginTop: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#F2F2F2', margin: 0 }}>Historique</h2>
-          {history.total > 0 && (
-            <span style={{ fontSize: 12, color: '#555' }}>{history.total} opération{history.total > 1 ? 's' : ''}</span>
-          )}
+      <div className="space-y-4">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Acheter des crédits</h2>
+        <CreditPacksClient packs={PACKS} />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold font-albert text-foreground">Historique</h2>
+          {history.total > 0 && <span className="text-xs text-muted-foreground">{history.total} opérations</span>}
         </div>
 
         {history.items.length === 0 ? (
-          <div style={{ padding: '32px 0', textAlign: 'center', background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
-            <p style={{ color: '#8B8B8B', fontSize: 13, margin: 0 }}>Aucune opération pour le moment.</p>
-          </div>
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Aucune opération pour le moment.
+            </CardContent>
+          </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {history.items.map((tx) => (
-              <div
-                key={tx.id}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderRadius: 8, background: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
-              >
-                {/* Amount badge */}
-                <span style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: tx.amount > 0 ? '#22C55E' : '#EF4444',
-                  minWidth: 36,
-                  textAlign: 'right',
-                  flexShrink: 0,
-                }}>
-                  {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
-                </span>
-
-                {/* Reason tag */}
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: REASON_COLORS[tx.reason],
-                  background: `${REASON_COLORS[tx.reason]}15`,
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}>
-                  {REASON_LABELS[tx.reason]}
-                </span>
-
-                {/* Description */}
-                <span style={{ flex: 1, fontSize: 12, color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {shortDesc(tx.description, tx.reason)}
-                </span>
-
-                {/* Date */}
-                <span style={{ fontSize: 11, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {new Date(tx.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </span>
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {history.items.map((tx) => (
+                  <div key={tx.id} className="flex items-center gap-4 p-4 text-sm">
+                    <span className={cn("font-bold min-w-[32px] text-right", tx.amount > 0 ? "text-emerald-600" : "text-destructive")}>
+                      {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
+                    </span>
+                    <Badge variant={REASON_VARIANTS[tx.reason] as any} className="text-[10px] uppercase font-bold py-0 h-5">
+                      {REASON_LABELS[tx.reason]}
+                    </Badge>
+                    <span className="flex-1 text-muted-foreground truncate">
+                      {shortDesc(tx.description, tx.reason)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                      {new Date(tx.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
