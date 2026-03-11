@@ -15,6 +15,11 @@ import { RedisService } from '../common/redis/redis.service'
 import { EmailService } from '../common/email/email.service'
 import { QUEUE_NAME } from './constants'
 
+interface TranscriptResult {
+  text: string
+  segments: { start: number; end: number; text: string }[]
+}
+
 export interface ProcessVideoJobData {
   transcriptionId: string
   videoUrl: string
@@ -27,6 +32,7 @@ export class VideoProcessor extends WorkerHost {
   private readonly logger = new Logger(VideoProcessor.name)
   private readonly openai: OpenAI
   private readonly groq: OpenAI | null
+  private readonly socialKitKey: string | undefined
 
   constructor(
     private readonly prisma: PrismaService,
@@ -38,6 +44,7 @@ export class VideoProcessor extends WorkerHost {
     this.openai = new OpenAI({ apiKey: this.config.get<string>('OPENAI_API_KEY') })
     const groqKey = this.config.get<string>('GROQ_API_KEY')
     this.groq = groqKey ? new OpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: groqKey }) : null
+    this.socialKitKey = this.config.get<string>('SOCIALKIT_API_KEY')
   }
 
   async process(job: Job<ProcessVideoJobData>): Promise<void> {
@@ -45,15 +52,34 @@ export class VideoProcessor extends WorkerHost {
     this.logger.log(`Processing job ${job.id} for transcription ${transcriptionId}`)
 
     try {
+      await this.prisma.transcription.update({
+        where: { id: transcriptionId },
+        data: { status: 'PROCESSING' },
+      })
+
+      // 1. Try SocialKit API first (handles download + transcription in one call)
+      const socialKitResult = await this.trySocialKit(videoUrl)
+      if (socialKitResult) {
+        this.logger.log(`SocialKit succeeded: ${socialKitResult.text.length} chars, ${socialKitResult.segments.length} segments`)
+        const keywords = socialKitResult.text.length > 0 ? await this.extractKeywords(socialKitResult.text) : []
+        await this.prisma.transcription.update({
+          where: { id: transcriptionId },
+          data: { status: 'COMPLETED', text: socialKitResult.text, segments: socialKitResult.segments, keywords },
+        })
+        this.logger.log(`Transcription ${transcriptionId} completed via SocialKit`)
+        return
+      }
+
+      // 2. Fallback: yt-dlp download + audio transcription
+      this.logger.log('SocialKit unavailable or failed, falling back to yt-dlp + transcription...')
       const meta = await this.fetchVideoMeta(videoUrl)
       await this.prisma.transcription.update({
         where: { id: transcriptionId },
-        data: { status: 'PROCESSING', title: meta.title, duration: meta.duration },
+        data: { title: meta.title, duration: meta.duration },
       })
 
       const audioPath = await this.getAudio(videoUrl, transcriptionId)
 
-      // Verify the audio file exists and has content
       const audioStats = await readFile(audioPath)
       this.logger.log(`Audio file size: ${audioStats.length} bytes for ${transcriptionId}`)
       if (audioStats.length < 1000) {
@@ -70,7 +96,7 @@ export class VideoProcessor extends WorkerHost {
         data: { status: 'COMPLETED', text: text || null, segments, keywords },
       })
 
-      this.logger.log(`Transcription ${transcriptionId} completed`)
+      this.logger.log(`Transcription ${transcriptionId} completed via yt-dlp fallback`)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       this.logger.error(`Transcription ${transcriptionId} failed: ${errorMsg}`)
@@ -89,7 +115,6 @@ export class VideoProcessor extends WorkerHost {
         }),
       ])
 
-      // Send failure email — non-blocking
       const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
       if (user) {
         this.emailService.sendTranscriptionFailedEmail(user.email, videoUrl).catch(() => {})
@@ -97,8 +122,56 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
+  // ─── SocialKit API ───────────────────────────────────────────────────────────
+
+  private getSocialKitPlatform(videoUrl: string): string | null {
+    if (/youtube\.com|youtu\.be/i.test(videoUrl)) return 'youtube'
+    if (/tiktok\.com/i.test(videoUrl)) return 'tiktok'
+    if (/instagram\.com/i.test(videoUrl)) return 'instagram'
+    if (/facebook\.com|fb\.watch/i.test(videoUrl)) return 'facebook'
+    return null
+  }
+
+  private async trySocialKit(videoUrl: string): Promise<TranscriptResult | null> {
+    if (!this.socialKitKey) return null
+
+    const platform = this.getSocialKitPlatform(videoUrl)
+    if (!platform) return null
+
+    try {
+      this.logger.log(`Trying SocialKit (${platform}/transcript)...`)
+      const url = `https://api.socialkit.dev/${platform}/transcript?url=${encodeURIComponent(videoUrl)}`
+      const response = await fetch(url, {
+        headers: { 'x-access-key': this.socialKitKey },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        throw new Error(`SocialKit ${response.status}: ${errorText}`)
+      }
+
+      const json = await response.json() as any
+      if (!json.success || !json.data?.transcript) {
+        throw new Error('SocialKit returned no transcript')
+      }
+
+      const text = json.data.transcript as string
+      const segments = (json.data.transcriptSegments ?? []).map((s: any) => ({
+        start: s.start,
+        end: s.start + (s.duration ?? 0),
+        text: s.text,
+      }))
+
+      return { text, segments }
+    } catch (err) {
+      this.logger.warn(`SocialKit failed: ${err instanceof Error ? err.message : err}. Falling back...`)
+      return null
+    }
+  }
+
+  // ─── Cookies & Proxy ─────────────────────────────────────────────────────────
+
   private getCookiesArgs(): string[] {
-    // 1. BEST WAY for Coolify: Base64 string to avoid newline/tab format corruption
     if (process.env.YT_COOKIES_BASE64) {
       const tmpCookiesPath = join(tmpdir(), 'youtube_cookies.txt')
       const decodedCookies = Buffer.from(process.env.YT_COOKIES_BASE64, 'base64').toString('utf-8')
@@ -106,16 +179,13 @@ export class VideoProcessor extends WorkerHost {
       return ['--cookies', tmpCookiesPath]
     }
 
-    // 2. Check if the user passed the cookies directly as a string in an ENV var
     if (process.env.YT_COOKIES_CONTENT) {
       const tmpCookiesPath = join(tmpdir(), 'youtube_cookies.txt')
-      // Clean up the string in case Coolify flattened newlines into literal '\n' or spaces
       const cleanedCookies = process.env.YT_COOKIES_CONTENT.replace(/\\n/g, '\n')
       writeFileSync(tmpCookiesPath, cleanedCookies, { encoding: 'utf-8' })
       return ['--cookies', tmpCookiesPath]
     }
 
-    // 3. Otherwise fallback to a file path
     const cookiesPath = process.env.YT_COOKIES_PATH ?? '/app/cookies.txt'
     if (existsSync(cookiesPath)) {
       return ['--cookies', cookiesPath]
@@ -129,6 +199,8 @@ export class VideoProcessor extends WorkerHost {
     const needsProxy = /youtube\.com|youtu\.be/i.test(videoUrl)
     return needsProxy ? ['--proxy', process.env.PROXY_URL] : []
   }
+
+  // ─── yt-dlp download ─────────────────────────────────────────────────────────
 
   private async getAudio(videoUrl: string, transcriptionId: string): Promise<string> {
     const uuid = createHash('sha256').update(videoUrl).digest('hex').slice(0, 16)
@@ -203,9 +275,11 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
-  private async transcribeAudio(audioPath: string): Promise<{ text: string; segments: { start: number; end: number; text: string }[] }> {
+  // ─── Audio transcription (fallback pipeline) ─────────────────────────────────
+
+  private async transcribeAudio(audioPath: string): Promise<TranscriptResult> {
     const deepgramKey = this.config.get<string>('DEEPGRAM_API_KEY')
-    
+
     // 1. Try Deepgram if available
     if (deepgramKey) {
       try {
@@ -279,11 +353,13 @@ export class VideoProcessor extends WorkerHost {
     return { text: response.text, segments }
   }
 
+  // ─── Keywords extraction ──────────────────────────────────────────────────────
+
   private async extractKeywords(text: string): Promise<string[]> {
     try {
       const client = this.groq ?? this.openai
       const model = this.groq ? 'llama-3.1-8b-instant' : 'gpt-4o-mini'
-      
+
       this.logger.log(`Extracting keywords via ${this.groq ? 'Groq' : 'OpenAI'}...`)
       const res = await client.chat.completions.create({
         model,
