@@ -1,9 +1,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY frontend/package.json ./
-RUN npm install
+RUN npm install --include=dev
 COPY frontend/ ./
-RUN npm run build
+RUN NODE_ENV=development npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
