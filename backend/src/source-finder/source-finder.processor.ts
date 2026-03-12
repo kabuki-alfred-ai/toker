@@ -6,6 +6,7 @@ import { Job } from 'bullmq'
 const execa = require('execa') as (file: string, args: string[], opts?: object) => Promise<{ stdout: string; stderr: string }>
 import { PrismaService } from '../common/prisma/prisma.service'
 import { SOURCE_FINDER_QUEUE } from './source-finder.constants'
+import { GeminiSourceFinderService } from './gemini-source-finder.service'
 
 export interface FindSourcesJobData {
   searchId: string
@@ -48,6 +49,7 @@ export class SourceFinderProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly geminiService: GeminiSourceFinderService,
   ) {
     super()
   }
@@ -62,6 +64,26 @@ export class SourceFinderProcessor extends WorkerHost {
         data: { status: 'PROCESSING' },
       })
 
+      // Use Gemini strategy when GEMINI_API_KEY is configured
+      if (process.env.GEMINI_API_KEY) {
+        this.logger.log(`Using Gemini strategy for ${videoUrl}`)
+        const { analysis, results } = await this.geminiService.findSources(videoUrl)
+
+        await this.prisma.sourceSearch.update({
+          where: { id: searchId },
+          data: {
+            status: 'COMPLETED',
+            sources: { strategy: 'gemini', analysis, results } as object,
+          },
+        })
+
+        this.logger.log(
+          `Source search ${searchId} completed via Gemini — ${results.length} results (isRemix: ${analysis.isRemix})`,
+        )
+        return
+      }
+
+      // Fallback: Python script (OpenCV + Google Lens)
       const python = this.config.get<string>('FIND_SOURCES_PYTHON') ?? 'python3'
       const script = this.config.get<string>('FIND_SOURCES_SCRIPT')
       if (!script) throw new Error('FIND_SOURCES_SCRIPT not configured')
