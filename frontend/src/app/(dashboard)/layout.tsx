@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { BottomNav } from '@/components/layout/bottom-nav'
-import { Logo } from '@/components/ui/logo'
+import { MobileHeader } from '@/components/layout/mobile-header'
 
 async function fetchMe() {
   const cookieStore = await cookies()
@@ -29,12 +29,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </div>
       
       <main className="flex-1 p-4 md:p-6 pb-[calc(80px+env(safe-area-inset-bottom))] text-foreground overflow-x-hidden">
-        {/* Mobile Top Bar */}
-        <div className="md:hidden mb-5 flex items-center justify-between">
-          <Logo variant="full" className="scale-90 origin-left" />
-          <div className="bg-primary/10 px-3 py-1 rounded-full text-xs text-primary font-semibold">
-            {user.credits.balance} crédits
-          </div>
+        {/* Mobile Header */}
+        <div className="mb-5 md:hidden">
+          <MobileHeader balance={user.credits.balance} email={user.email} firstName={user.firstName} lastName={user.lastName} isAdmin={user.role === 'ADMIN'} />
         </div>
         
         {children}
