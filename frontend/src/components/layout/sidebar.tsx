@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search, ShieldCheck, ArrowLeftRight } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search, ShieldCheck, ArrowLeftRight, Download, Subtitles } from 'lucide-react'
 import { CreditsBadge } from '@/components/features/credits/credits-badge'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/transcriptions', label: 'Transcriptions', icon: FileText },
   { href: '/source-finder', label: 'Source Finder', icon: Search, beta: true },
+  { href: '/download', label: 'Download', icon: Download },
+  { href: '/subtitle-remover', label: 'Subtitle Remover', icon: Subtitles },
 ]
 
 interface SidebarProps {

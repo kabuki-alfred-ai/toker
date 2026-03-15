@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-viralscript}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viralscript}"]
       interval: 5s
@@ -21,6 +23,22 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-rustfs_admin}
+      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:-change_me_strong_password}
+    volumes:
+      - rustfs_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:9000/ | grep -qE '(200|403)'"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -41,12 +59,19 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       PROXY_URL: ${PROXY_URL:-}
       SOCIALKIT_API_KEY: ${SOCIALKIT_API_KEY:-}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://rustfs:9000}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-rustfs_admin}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-change_me_strong_password}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-viralscript}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
     ports:
       - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rustfs:
         condition: service_healthy
     command: sh -c "npx prisma migrate deploy && node dist/src/main"
     restart: unless-stopped
@@ -67,3 +92,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  rustfs_data:

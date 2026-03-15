@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { AppController } from './app.controller'
 import { PrismaModule } from './common/prisma/prisma.module'
 import { RedisModule } from './common/redis/redis.module'
+import { StorageModule } from './common/storage/storage.module'
 import { AuthModule } from './auth/auth.module'
 import { UsersModule } from './users/users.module'
 import { TranscriptionsModule } from './transcriptions/transcriptions.module'
@@ -13,6 +14,8 @@ import { PaymentsModule } from './payments/payments.module'
 import { CreditsModule } from './credits/credits.module'
 import { AdminModule } from './admin/admin.module'
 import { SourceFinderModule } from './source-finder/source-finder.module'
+import { DownloadsModule } from './downloads/downloads.module'
+import { SubtitleRemoverModule } from './subtitle-remover/subtitle-remover.module'
 
 @Module({
   imports: [
@@ -30,6 +33,7 @@ import { SourceFinderModule } from './source-finder/source-finder.module'
     }),
     PrismaModule,
     RedisModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     TranscriptionsModule,
@@ -38,6 +42,8 @@ import { SourceFinderModule } from './source-finder/source-finder.module'
     CreditsModule,
     AdminModule,
     SourceFinderModule,
+    DownloadsModule,
+    SubtitleRemoverModule,
   ],
   controllers: [AppController],
 })

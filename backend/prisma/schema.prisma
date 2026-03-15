@@ -17,8 +17,41 @@ enum CreditTransactionReason {
   TRANSCRIPTION_REFUND
   SOURCE_FINDER_USED
   SOURCE_FINDER_REFUND
+  DOWNLOAD_USED
+  DOWNLOAD_REFUND
+  SUBTITLE_REMOVAL_USED
+  SUBTITLE_REMOVAL_REFUND
   PURCHASE
   WEEKLY_RESET
+}
+
+enum SubtitleRemovalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DownloadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DownloadFormat {
+  mp4
+  mp3
+  webm
+  m4a
+}
+
+enum DownloadQuality {
+  q240p
+  q360p
+  q480p
+  q720p
+  q1080p
 }
 
 enum SourceSearchStatus {
@@ -46,6 +79,8 @@ model User {
   updatedAt            DateTime             @updatedAt
   transcriptions       Transcription[]
   sourceSearches       SourceSearch[]
+  downloads            Download[]
+  subtitleRemovals     SubtitleRemoval[]
   creditWallet         CreditWallet?
   creditTransactions   CreditTransaction[]
   passwordResetTokens  PasswordResetToken[]
@@ -107,6 +142,43 @@ model SourceSearch {
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("source_searches")
+}
+
+model Download {
+  id          String          @id @default(cuid())
+  userId      String
+  videoUrl    String
+  title       String?
+  thumbnail   String?
+  format      DownloadFormat  @default(mp4)
+  quality     DownloadQuality @default(q360p)
+  downloadUrl String?
+  storageKey  String?         // RustFS bucket path — used to generate presigned URLs
+  fileSize    String?
+  duration    String?
+  status      DownloadStatus  @default(PENDING)
+  errorMsg    String?
+  expiresAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("downloads")
+}
+
+model SubtitleRemoval {
+  id         String                @id @default(cuid())
+  userId     String
+  videoUrl   String
+  outputUrl  String?
+  storageKey String?               // RustFS bucket path — used to generate presigned URLs
+  status     SubtitleRemovalStatus @default(PENDING)
+  errorMsg   String?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subtitle_removals")
 }
 
 model PasswordResetToken {
