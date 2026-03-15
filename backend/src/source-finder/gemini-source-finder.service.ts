@@ -41,7 +41,7 @@ export class GeminiSourceFinderService {
     const metadata = await this.extractMetadata(videoUrl)
 
     // 2. Analyze with Gemini
-    const analysis = await this.analyzeWithGemini(metadata)
+    const analysis = await this.analyzeWithGemini(metadata, videoUrl)
 
     // 3. Search YouTube
     const results = await this.searchYouTube(analysis.searchQueries, analysis.keywords)
@@ -51,7 +51,12 @@ export class GeminiSourceFinderService {
 
   private async extractMetadata(videoUrl: string): Promise<Record<string, unknown>> {
     try {
-      const { stdout } = await execAsync(`yt-dlp --dump-json --no-playlist "${videoUrl}"`, { timeout: 30000 })
+      const proxyUrl = this.config.get<string>('PROXY_URL')
+      const proxyArg = proxyUrl ? `--proxy "${proxyUrl}"` : ''
+      const { stdout } = await execAsync(
+        `yt-dlp --dump-json --no-playlist ${proxyArg} "${videoUrl}"`,
+        { timeout: 30000 },
+      )
       const data = JSON.parse(stdout) as {
         title?: string
         description?: string
@@ -79,12 +84,13 @@ export class GeminiSourceFinderService {
         subtitles: data.subtitles ? Object.keys(data.subtitles) : [],
       }
     } catch (err) {
-      this.logger.error('yt-dlp metadata extraction failed', err)
-      throw new Error('Could not extract video metadata')
+      this.logger.warn(`yt-dlp metadata extraction failed for ${videoUrl}: ${err instanceof Error ? err.message : String(err)}`)
+      // Return empty metadata so Gemini can still attempt analysis based on the URL
+      return { title: '', description: '', tags: [], uploader: '', channel: '', categories: [] }
     }
   }
 
-  private async analyzeWithGemini(metadata: Record<string, unknown>): Promise<GeminiAnalysisResult> {
+  private async analyzeWithGemini(metadata: Record<string, unknown>, videoUrl: string): Promise<GeminiAnalysisResult> {
     if (!this.genAI) {
       // Fallback: extract keywords from title/description without AI
       const title = String(metadata.title ?? '')
@@ -100,14 +106,17 @@ export class GeminiSourceFinderService {
     const modelName = this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash'
     const model = this.genAI.getGenerativeModel({ model: modelName })
 
+    const hasMetadata = metadata.title || (metadata.tags as string[])?.length
     const prompt = `You are an expert at analyzing video metadata to identify if a video is a remix, reediting, compilation, or derivative work, and finding its original sources.
 
-Analyze this video metadata:
+Analyze this video:
+URL: ${videoUrl}
 Title: ${String(metadata.title ?? '')}
 Description: ${String(metadata.description ?? '')}
 Tags: ${((metadata.tags as string[]) ?? []).join(', ')}
 Channel: ${String(metadata.channel ?? '')}
 Categories: ${((metadata.categories as string[]) ?? []).join(', ')}
+${!hasMetadata ? '\nNote: Metadata extraction failed. Use the URL itself to infer context and generate relevant search queries.' : ''}
 
 Your task:
 1. Determine if this video is likely a remix, reediting, compilation, or derivative of other content
