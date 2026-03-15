@@ -13,6 +13,7 @@
     "dev:backend": "npm run start:dev --workspace=backend",
     "build:extension": "npm run build --workspace=extension",
     "db:migrate": "npm run prisma:migrate --workspace=backend",
+    "storage:init": "npm run storage:init --workspace=backend",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   }

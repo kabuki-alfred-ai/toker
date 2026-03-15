@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "make:admin": "npx ts-node src/cli/make-admin.ts",
+    "storage:init": "npx ts-node src/cli/init-storage.ts",
     "prisma:migrate": "npx prisma migrate deploy"
   },
   "dependencies": {

@@ -73,7 +73,7 @@ services:
         condition: service_healthy
       rustfs:
         condition: service_healthy
-    command: sh -c "npx prisma migrate deploy && node dist/src/main"
+    command: sh -c "npx prisma migrate deploy && node dist/src/cli/init-storage.js && node dist/src/main"
     restart: unless-stopped
 
   frontend:
