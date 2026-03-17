@@ -1,0 +1,19 @@
+{
+  "name": "remotion-compositions",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "remotion bundle src/index.ts",
+    "dev": "remotion studio"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

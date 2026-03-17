@@ -65,6 +65,10 @@ services:
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-change_me_strong_password}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-viralscript}
       STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      REMOTION_BUNDLE_PATH: /app/remotion-compositions/build
+      CHROME_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      REMOTION_CONCURRENCY: "1"
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
     ports:
       - "3001:3001"
     depends_on:

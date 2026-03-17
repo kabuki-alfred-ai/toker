@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search, ShieldCheck, ArrowLeftRight, Download, Subtitles } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut, Video, UserCircle, Search, ShieldCheck, ArrowLeftRight, Download, Subtitles, Captions } from 'lucide-react'
 import { CreditsBadge } from '@/components/features/credits/credits-badge'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/source-finder', label: 'Source Finder', icon: Search, beta: true },
   { href: '/download', label: 'Download', icon: Download },
   { href: '/subtitle-remover', label: 'Subtitle Remover', icon: Subtitles },
+  { href: '/subtitle-generator', label: 'Auto Subtitles', icon: Captions },
 ]
 
 interface SidebarProps {
@@ -80,8 +81,8 @@ export function Sidebar({ balance, email, firstName, lastName, isAdmin }: Sideba
               href={href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 no-underline",
-                isActive 
-                  ? "font-bold text-foreground bg-accent/20" 
+                isActive
+                  ? "font-bold text-foreground bg-accent/20"
                   : "font-medium text-muted-foreground hover:bg-accent/10 active:scale-95"
               )}
             >

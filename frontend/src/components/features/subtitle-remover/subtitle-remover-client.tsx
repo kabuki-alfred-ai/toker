@@ -178,7 +178,10 @@ export function SubtitleRemoverClient({ credits, history: initialHistory }: { cr
               />
             </div>
 
-
+            <div className="p-3 rounded-lg bg-muted/40 border text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">Comment ça marche</p>
+              <p>Le modèle détecte automatiquement les zones de sous-titres et les efface par inpainting (algorithme STTN). Le traitement prend généralement <strong>3–10 minutes</strong> selon la durée de la vidéo.</p>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
               <div className="text-sm font-medium text-muted-foreground">

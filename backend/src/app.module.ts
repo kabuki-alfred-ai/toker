@@ -16,6 +16,7 @@ import { AdminModule } from './admin/admin.module'
 import { SourceFinderModule } from './source-finder/source-finder.module'
 import { DownloadsModule } from './downloads/downloads.module'
 import { SubtitleRemoverModule } from './subtitle-remover/subtitle-remover.module'
+import { SubtitleGeneratorModule } from './subtitle-generator/subtitle-generator.module'
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { SubtitleRemoverModule } from './subtitle-remover/subtitle-remover.modul
     SourceFinderModule,
     DownloadsModule,
     SubtitleRemoverModule,
+    SubtitleGeneratorModule,
   ],
   controllers: [AppController],
 })

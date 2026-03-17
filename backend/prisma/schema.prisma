@@ -21,6 +21,8 @@ enum CreditTransactionReason {
   DOWNLOAD_REFUND
   SUBTITLE_REMOVAL_USED
   SUBTITLE_REMOVAL_REFUND
+  SUBTITLE_GENERATION_USED
+  SUBTITLE_GENERATION_REFUND
   PURCHASE
   WEEKLY_RESET
 }
@@ -68,6 +70,22 @@ enum TranscriptionStatus {
   FAILED
 }
 
+enum SubtitleGenerationStatus {
+  PENDING
+  TRANSCRIBING
+  TRANSCRIBED
+  RENDERING
+  COMPLETED
+  FAILED
+}
+
+enum SubtitlePreset {
+  BOLD_SHADOW
+  KARAOKE
+  PILL
+  OUTLINE
+}
+
 model User {
   id                   String               @id @default(cuid())
   email                String               @unique
@@ -81,6 +99,7 @@ model User {
   sourceSearches       SourceSearch[]
   downloads            Download[]
   subtitleRemovals     SubtitleRemoval[]
+  subtitleGenerations  SubtitleGeneration[]
   creditWallet         CreditWallet?
   creditTransactions   CreditTransaction[]
   passwordResetTokens  PasswordResetToken[]
@@ -179,6 +198,24 @@ model SubtitleRemoval {
   user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subtitle_removals")
+}
+
+model SubtitleGeneration {
+  id              String                   @id @default(cuid())
+  userId          String
+  videoUrl        String
+  preset          SubtitlePreset           @default(KARAOKE)
+  customization   Json?
+  wordSegments    Json?
+  status          SubtitleGenerationStatus @default(PENDING)
+  errorMsg        String?
+  storageKey      String?
+  inputStorageKey String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subtitle_generations")
 }
 
 model PasswordResetToken {
