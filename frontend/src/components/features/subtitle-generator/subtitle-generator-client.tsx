@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Captions, Loader2, AlertCircle, Zap, History,
-  CheckCircle2, Download, RefreshCw, Link2, Play, X, ArrowLeft, Pencil, Upload,
+  CheckCircle2, Download, RefreshCw, Link2, Play, X, ArrowLeft, Pencil, Upload, ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -26,6 +28,7 @@ interface GenerationJob {
   videoUrl: string
   preset: Preset
   wordSegments?: WordSegment[]
+  customization?: Partial<Customization>
   fileUrl: string | null
   inputFileUrl: string | null
   errorMsg: string | null
@@ -38,6 +41,7 @@ interface Customization {
   highlightColor: string
   bgColor: string
   position: number  // 0 = top, 100 = bottom
+  animatedEmojis: boolean
 }
 
 type ClientStep = 'FORM' | 'TRANSCRIBING' | 'EDITOR' | 'RENDERING' | 'DONE'
@@ -68,6 +72,7 @@ const DEFAULT_CUSTOMIZATION: Customization = {
   highlightColor: '#FFE600',
   bgColor: '#000000CC',
   position: 82,
+  animatedEmojis: false,
 }
 
 function shortUrl(url: string): string {
@@ -75,6 +80,16 @@ function shortUrl(url: string): string {
     const u = new URL(url)
     return u.hostname.replace('www.', '') + u.pathname.slice(0, 30)
   } catch { return url.slice(0, 42) }
+}
+
+/** Extract the first https URL from a pasted string (handles TikTok mobile share text) */
+function extractUrl(text: string): string {
+  const trimmed = text.trim()
+  // If it already looks like a bare URL, return as-is
+  if (/^https?:\/\//i.test(trimmed) && !trimmed.includes(' ')) return trimmed
+  // Extract first URL from mixed text (e.g. TikTok share: "Check @user #fyp https://vm.tiktok.com/xxx")
+  const match = trimmed.match(/https?:\/\/[^\s]+/i)
+  return match ? match[0].replace(/[.,!?)"']+$/, '') : trimmed
 }
 
 // ─── Chunk helpers ─────────────────────────────────────────────────────────────
@@ -123,7 +138,7 @@ function SubtitleTextEditor({ segments, onChange }: { segments: WordSegment[]; o
   }
 
   return (
-    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+    <div className="space-y-1.5 max-h-[480px] overflow-y-auto pr-1">
       {chunks.map((chunk, i) => {
         const text = chunk.words.map((w) => w.punctuated_word).join(' ')
         const timeLabel = `${chunk.words[0].start.toFixed(1)}s`
@@ -181,18 +196,39 @@ function VideoModal({ job, onClose }: { job: GenerationJob; onClose: () => void 
 
 // ─── Main client ──────────────────────────────────────────────────────────────
 
-export function SubtitleGeneratorClient({ credits, history: initialHistory }: { credits: number; history: GenerationJob[] }) {
+function jobToStep(status: GenerationStatus): ClientStep {
+  if (status === 'TRANSCRIBED') return 'EDITOR'
+  if (status === 'COMPLETED') return 'DONE'
+  if (status === 'RENDERING') return 'RENDERING'
+  if (status === 'TRANSCRIBING' || status === 'PENDING') return 'TRANSCRIBING'
+  return 'FORM'
+}
+
+export function SubtitleGeneratorClient({
+  credits,
+  history: initialHistory,
+  initialJob,
+}: {
+  credits: number
+  history: GenerationJob[]
+  initialJob?: GenerationJob
+}) {
+  const router = useRouter()
   const [inputMode, setInputMode] = useState<'url' | 'file'>('url')
   const [url, setUrl] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
-  const [preset, setPreset] = useState<Preset>('KARAOKE')
-  const [customization, setCustomization] = useState<Customization>(DEFAULT_CUSTOMIZATION)
-  const [wordSegments, setWordSegments] = useState<WordSegment[]>([])
-  const [step, setStep] = useState<ClientStep>('FORM')
+  const [preset, setPreset] = useState<Preset>(() => initialJob?.preset ?? 'KARAOKE')
+  const [customization, setCustomization] = useState<Customization>(() =>
+    initialJob?.customization ? { ...DEFAULT_CUSTOMIZATION, ...initialJob.customization } : DEFAULT_CUSTOMIZATION
+  )
+  const [wordSegments, setWordSegments] = useState<WordSegment[]>(() =>
+    (initialJob?.wordSegments as WordSegment[]) ?? []
+  )
+  const [step, setStep] = useState<ClientStep>(() => initialJob ? jobToStep(initialJob.status) : 'FORM')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeJob, setActiveJob] = useState<GenerationJob | null>(null)
+  const [activeJob, setActiveJob] = useState<GenerationJob | null>(() => initialJob ?? null)
   const [history, setHistory] = useState(initialHistory)
   const [activeTab, setActiveTab] = useState('form')
   const [selectedJob, setSelectedJob] = useState<GenerationJob | null>(null)
@@ -203,6 +239,14 @@ export function SubtitleGeneratorClient({ credits, history: initialHistory }: { 
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
   }
   useEffect(() => () => stopPolling(), [])
+
+  // Auto-start polling when resuming an in-progress job
+  useEffect(() => {
+    if (initialJob && ['PENDING', 'TRANSCRIBING', 'RENDERING'].includes(initialJob.status)) {
+      startPolling(initialJob.id)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const startPolling = useCallback((id: string) => {
     stopPolling()
@@ -306,6 +350,10 @@ export function SubtitleGeneratorClient({ credits, history: initialHistory }: { 
 
   function handleReset() {
     stopPolling()
+    if (initialJob) {
+      router.push('/subtitle-generator')
+      return
+    }
     setStep('FORM')
     setActiveJob(null)
     setWordSegments([])
@@ -355,7 +403,17 @@ export function SubtitleGeneratorClient({ credits, history: initialHistory }: { 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"><Link2 size={18} /></div>
-                    <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://... (TikTok, Instagram, YouTube)" className="pl-10" />
+                    <Input
+                      value={url}
+                      onChange={(e) => setUrl(extractUrl(e.target.value))}
+                      onPaste={(e) => {
+                        e.preventDefault()
+                        const pasted = e.clipboardData.getData('text')
+                        setUrl(extractUrl(pasted))
+                      }}
+                      placeholder="https://... (TikTok, Instagram, YouTube)"
+                      className="pl-10"
+                    />
                   </div>
                   {error && (
                     <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm font-medium flex items-center gap-2">
@@ -557,11 +615,23 @@ export function SubtitleGeneratorClient({ credits, history: initialHistory }: { 
                       <div className="text-xs text-muted-foreground flex-shrink-0">
                         {new Date(item.createdAt).toLocaleDateString('fr-FR')}
                       </div>
-                      {item.status === 'COMPLETED' && item.fileUrl && (
-                        <button type="button" onClick={() => setSelectedJob(item)} className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded bg-muted hover:bg-accent transition-colors shrink-0">
-                          <Play size={11} /> Voir
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {item.status === 'COMPLETED' && item.fileUrl && (
+                          <button type="button" onClick={() => setSelectedJob(item)} className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded bg-muted hover:bg-accent transition-colors">
+                            <Play size={11} /> Voir
+                          </button>
+                        )}
+                        {item.status === 'TRANSCRIBED' && (
+                          <Link href={`/subtitle-generator/${item.id}`} className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded bg-violet-500/15 text-violet-500 hover:bg-violet-500/25 transition-colors no-underline">
+                            <Pencil size={11} /> Reprendre
+                          </Link>
+                        )}
+                        {(item.status === 'PENDING' || item.status === 'TRANSCRIBING' || item.status === 'RENDERING') && (
+                          <Link href={`/subtitle-generator/${item.id}`} className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded bg-muted hover:bg-accent transition-colors no-underline">
+                            <ExternalLink size={11} /> Suivi
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

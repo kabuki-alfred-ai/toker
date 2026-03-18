@@ -8,6 +8,7 @@ interface Customization {
   highlightColor: string
   bgColor: string
   position: number  // 0 = top, 100 = bottom
+  animatedEmojis: boolean
 }
 
 interface CustomizationPanelProps {
@@ -69,6 +70,31 @@ export function CustomizationPanel({ value, onChange, preset }: CustomizationPan
               <span>Haut</span>
               <span>Bas</span>
             </div>
+          </div>
+
+          {/* Animated Emojis */}
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emojis animés</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">Apparaissent automatiquement selon les mots</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={value.animatedEmojis}
+              onClick={() => onChange({ ...value, animatedEmojis: !value.animatedEmojis })}
+              className={cn(
+                'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                value.animatedEmojis ? 'bg-primary' : 'bg-muted-foreground/30',
+              )}
+            >
+              <span
+                className={cn(
+                  'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform',
+                  value.animatedEmojis ? 'translate-x-4' : 'translate-x-1',
+                )}
+              />
+            </button>
           </div>
 
           {/* Colors */}

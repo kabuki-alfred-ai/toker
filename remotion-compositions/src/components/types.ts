@@ -13,6 +13,7 @@ export interface SubtitleCustomization {
   highlightColor: string
   bgColor: string
   position: number  // 0 = top, 100 = bottom (percentage of video height)
+  animatedEmojis?: boolean
 }
 
 export interface SubtitledVideoProps {

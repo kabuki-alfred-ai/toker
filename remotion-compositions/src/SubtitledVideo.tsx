@@ -1,6 +1,7 @@
 import React from 'react'
 import { AbsoluteFill, Video, useVideoConfig } from 'remotion'
 import { SubtitleOverlay } from './components/SubtitleOverlay'
+import { EmojiOverlay } from './components/EmojiOverlay'
 import type { SubtitledVideoProps } from './components/types'
 
 export function SubtitledVideo({ videoSrc, wordSegments, preset, customization }: SubtitledVideoProps) {
@@ -16,6 +17,12 @@ export function SubtitledVideo({ videoSrc, wordSegments, preset, customization }
         preset={preset}
         customization={customization}
       />
+      {customization.animatedEmojis && (
+        <EmojiOverlay
+          wordSegments={wordSegments}
+          position={customization.position}
+        />
+      )}
     </AbsoluteFill>
   )
 }

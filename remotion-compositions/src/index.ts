@@ -15,7 +15,8 @@ const defaultProps: SubtitledVideoProps = {
     color: '#FFFFFF',
     highlightColor: '#FFDD00',
     bgColor: '#000000CC',
-    position: 'bottom',
+    position: 82,
+    animatedEmojis: false,
   },
   durationInSeconds: 10,
   fps: 30,
@@ -26,7 +27,7 @@ const defaultProps: SubtitledVideoProps = {
 registerRoot(() =>
   React.createElement(Composition, {
     id: 'SubtitledVideo',
-    component: SubtitledVideo,
+    component: SubtitledVideo as unknown as React.ComponentType<Record<string, unknown>>,
     durationInFrames: defaultProps.durationInSeconds * defaultProps.fps,
     fps: defaultProps.fps,
     width: defaultProps.width,
