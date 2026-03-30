@@ -5,6 +5,12 @@ export interface WordSegment {
   end: number
 }
 
+export interface EmojiEvent {
+  emoji: string
+  startTime: number
+  endTime: number
+}
+
 export type SubtitlePreset = 'KARAOKE' | 'BOLD_SHADOW' | 'PILL' | 'OUTLINE'
 
 export interface SubtitleCustomization {
@@ -19,6 +25,7 @@ export interface SubtitleCustomization {
 export interface SubtitledVideoProps {
   videoSrc: string
   wordSegments: WordSegment[]
+  emojiEvents?: EmojiEvent[] | null
   preset: SubtitlePreset
   customization: SubtitleCustomization
   durationInSeconds: number

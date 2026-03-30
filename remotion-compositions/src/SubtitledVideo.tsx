@@ -4,7 +4,7 @@ import { SubtitleOverlay } from './components/SubtitleOverlay'
 import { EmojiOverlay } from './components/EmojiOverlay'
 import type { SubtitledVideoProps } from './components/types'
 
-export function SubtitledVideo({ videoSrc, wordSegments, preset, customization }: SubtitledVideoProps) {
+export function SubtitledVideo({ videoSrc, wordSegments, emojiEvents, preset, customization }: SubtitledVideoProps) {
   const { width, height } = useVideoConfig()
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
@@ -21,6 +21,7 @@ export function SubtitledVideo({ videoSrc, wordSegments, preset, customization }
         <EmojiOverlay
           wordSegments={wordSegments}
           position={customization.position}
+          emojiEvents={emojiEvents}
         />
       )}
     </AbsoluteFill>

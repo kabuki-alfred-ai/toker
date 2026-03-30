@@ -1,11 +1,7 @@
 import type { EmojiName } from '@remotion/animated-emoji'
-import type { WordSegment } from '../components/types'
+import type { WordSegment, EmojiEvent } from '../components/types'
 
-export interface EmojiEvent {
-  emoji: EmojiName
-  startTime: number
-  endTime: number
-}
+export type { EmojiEvent }
 
 /**
  * Raw keyword entries as an array to avoid duplicate-key TS errors.

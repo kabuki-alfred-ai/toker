@@ -1,22 +1,26 @@
 import React from 'react'
 import { useCurrentFrame, useVideoConfig, spring, interpolate } from 'remotion'
 import { AnimatedEmoji } from '@remotion/animated-emoji'
-import type { WordSegment } from './types'
+import type { EmojiName } from '@remotion/animated-emoji'
+import type { WordSegment, EmojiEvent } from './types'
 import { generateEmojiEvents } from '../utils/emoji-mapper'
 import { googleFontsCDNSrc } from '../utils/emoji-cdn'
 
 interface EmojiOverlayProps {
   wordSegments: WordSegment[]
   position: number // subtitle vertical position 0-100
+  emojiEvents?: EmojiEvent[] | null // pre-computed by Gemini; falls back to keyword mapper
 }
 
-export function EmojiOverlay({ wordSegments, position }: EmojiOverlayProps) {
+export function EmojiOverlay({ wordSegments, position, emojiEvents: precomputedEvents }: EmojiOverlayProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const currentTime = frame / fps
 
   const events = React.useMemo(
-    () => generateEmojiEvents(wordSegments),
+    () => (precomputedEvents && precomputedEvents.length > 0)
+      ? precomputedEvents
+      : generateEmojiEvents(wordSegments),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
@@ -65,7 +69,7 @@ export function EmojiOverlay({ wordSegments, position }: EmojiOverlayProps) {
       }}
     >
       <AnimatedEmoji
-        emoji={activeEvent.emoji}
+        emoji={activeEvent.emoji as EmojiName}
         scale="0.5"
         calculateSrc={googleFontsCDNSrc}
         style={{ width: 120, height: 120 }}

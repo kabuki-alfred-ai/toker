@@ -1,6 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { Job } from 'bullmq'
 import execa from 'execa'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
@@ -31,6 +32,47 @@ interface WordSegment {
   start: number
   end: number
 }
+
+interface EmojiEvent {
+  emoji: string
+  startTime: number
+  endTime: number
+}
+
+const AVAILABLE_EMOJIS = `fire: excitement, energy, hype, amazing
+mind-blown: shock, disbelief, revelation, WTF, impossible
+red-heart: love, affection, romance, deep care
+sparkling-heart: beauty, cute, aesthetic, wonderful
+joy: funny, humor, laugh, comedy
+rofl: hilarious, LMAO, dying of laughter
+party-popper: win, success, celebration, achievement, congratulations
+birthday-cake: birthday, anniversary
+loudly-crying: sadness, grief, heartbreak, tears, pain
+money-with-wings: money, wealth, earnings, financial, business
+thumbs-up: approval, perfect, correct, agreement, great
+clap: applause, respect, impressive, well done
+100: facts, truth, no cap, accurate, real
+eyes: attention, look, watch, reveal, notice
+muscle: strength, power, workout, hustle, grind, motivation
+sparkles: magic, shine, extraordinary, special
+rocket: fast growth, launch, viral, trending up, scaling
+light-bulb: idea, tip, hack, insight, secret, discovery
+sunglasses-face: cool, swag, confident, boss, chill
+folded-hands: thanks, gratitude, pray, blessed
+angry: anger, frustration, rage, unfair, hate
+screaming: fear, horror, shock, terror
+glowing-star: best, top, GOAT, legend, award
+thinking-face: reflection, doubt, question, analysis, hmm
+graduation-cap: learning, education, knowledge, course, tutorial
+musical-notes: music, song, rhythm, beat
+star-struck: wow, celebrity, amazed, blown away
+wave: greeting, hello, goodbye, welcome
+nerd-face: genius, smart, strategy, calculated
+sleep: tired, exhausted, bored, rest
+sleepy: drowsy, slightly tired
+collision: explosion, boom, burst
+rainbow: hope, diversity, positivity
+rose: romance, flowers, beauty, nature`
 
 @Processor(SUBTITLE_GENERATOR_QUEUE)
 export class SubtitleGeneratorProcessor extends WorkerHost {
@@ -139,11 +181,18 @@ export class SubtitleGeneratorProcessor extends WorkerHost {
         ? record!.inputStorageKey!
         : `subtitle-generations/inputs/${generationId}.mp4`
 
+      // Generate emoji events with Gemini (best-effort, non-blocking)
+      const emojiEvents = await this.generateEmojiEventsWithGemini(wordSegments).catch((err) => {
+        this.logger.warn(`Gemini emoji generation failed, falling back to keyword mapper: ${err?.message}`)
+        return null
+      })
+
       await this.prisma.subtitleGeneration.update({
         where: { id: generationId },
         data: {
           wordSegments: wordSegments as any,
           inputStorageKey,
+          emojiEvents: emojiEvents as any,
           status: 'TRANSCRIBED',
           customization: {
             ...(await this.prisma.subtitleGeneration.findUnique({ where: { id: generationId }, select: { customization: true } }))?.customization as any ?? {},
@@ -183,6 +232,7 @@ export class SubtitleGeneratorProcessor extends WorkerHost {
       if (!record) throw new Error('Record not found')
 
       const wordSegments = (record.wordSegments as any[]) ?? []
+      const emojiEvents = (record.emojiEvents as EmojiEvent[] | null) ?? null
       const preset = record.preset
       const customization = record.customization as any ?? {}
       const meta = customization._meta ?? {}
@@ -201,7 +251,7 @@ export class SubtitleGeneratorProcessor extends WorkerHost {
       const bundleDir = this.config.get<string>('REMOTION_BUNDLE_PATH') ?? '/app/remotion-compositions/build'
       const outputPath = join(tmpDir, 'output.mp4')
 
-      const inputProps = { videoSrc, wordSegments, preset, customization: { ...customization, _meta: undefined }, durationInSeconds, fps, width, height }
+      const inputProps = { videoSrc, wordSegments, emojiEvents, preset, customization: { ...customization, _meta: undefined }, durationInSeconds, fps, width, height }
 
       const chromeExecutable = this.config.get<string>('CHROME_EXECUTABLE_PATH') ?? undefined
       const concurrency = Number(this.config.get<string>('REMOTION_CONCURRENCY') ?? '1')
@@ -248,6 +298,58 @@ export class SubtitleGeneratorProcessor extends WorkerHost {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  private async generateEmojiEventsWithGemini(wordSegments: WordSegment[]): Promise<EmojiEvent[] | null> {
+    const apiKey = this.config.get<string>('GEMINI_API_KEY')
+    if (!apiKey) return null
+    if (wordSegments.length === 0) return null
+
+    // Build compact transcript: [timestamp] word
+    const transcriptLines = wordSegments
+      .map((w) => `[${w.start.toFixed(2)}] ${w.word}`)
+      .join('\n')
+
+    const prompt = `You are an emoji placement assistant for video subtitles. Given a transcript with word timestamps, select the most emotionally relevant moments to display animated emojis.
+
+Available emojis (name: meaning):
+${AVAILABLE_EMOJIS}
+
+Transcript:
+${transcriptLines}
+
+Rules:
+- Select 3 to 8 emoji placements where they add genuine emotional or semantic value
+- Space them at least 4 seconds apart
+- Use the timestamp of the most relevant word
+- Only use emoji names from the list above
+- Return ONLY a valid JSON array, no explanation, no markdown
+
+Output format:
+[{"startTime": 1.2, "emoji": "fire"}, {"startTime": 9.5, "emoji": "red-heart"}]`
+
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const modelName = this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash'
+    const model = genAI.getGenerativeModel({ model: modelName })
+
+    const result = await model.generateContent(prompt)
+    const text = result.response.text().trim()
+
+    // Extract JSON array from response (Gemini may add ```json blocks)
+    const jsonMatch = text.match(/\[[\s\S]*\]/)
+    if (!jsonMatch) throw new Error(`Gemini returned no JSON array: ${text.slice(0, 200)}`)
+
+    const raw: Array<{ startTime: number; emoji: string }> = JSON.parse(jsonMatch[0])
+    if (!Array.isArray(raw)) throw new Error('Gemini response is not an array')
+
+    const DISPLAY_DURATION = 2.3
+    const events: EmojiEvent[] = raw
+      .filter((e) => typeof e.startTime === 'number' && typeof e.emoji === 'string')
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((e) => ({ emoji: e.emoji, startTime: e.startTime, endTime: e.startTime + DISPLAY_DURATION }))
+
+    this.logger.log(`Gemini generated ${events.length} emoji events`)
+    return events.length > 0 ? events : null
+  }
 
   private getSocialKitPlatform(videoUrl: string): string | null {
     if (/youtube\.com|youtu\.be/i.test(videoUrl)) return 'youtube'

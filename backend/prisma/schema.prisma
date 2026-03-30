@@ -207,6 +207,7 @@ model SubtitleGeneration {
   preset          SubtitlePreset           @default(KARAOKE)
   customization   Json?
   wordSegments    Json?
+  emojiEvents     Json?                    // Array of { emoji: string, startTime: number, endTime: number } — pre-computed by Gemini
   status          SubtitleGenerationStatus @default(PENDING)
   errorMsg        String?
   storageKey      String?
